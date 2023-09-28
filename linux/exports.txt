@@ -1,0 +1,9 @@
+mrcal
+{
+global:
+    Java_org_mrcal_MrCalJNI_calibrateCamera;
+    JNI_OnLoad;
+
+local:
+    *;
+};
