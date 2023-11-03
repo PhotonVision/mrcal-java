@@ -1,0 +1,52 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "(gdb) Launch mrcal jni test",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/mrcal_jni_test",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "setupCommands": [
+          {
+              "description": "Enable pretty-printing for gdb",
+              "text": "-enable-pretty-printing",
+              "ignoreFailures": true
+          },
+          {
+              "description": "Set Disassembly Flavor to Intel",
+              "text": "-gdb-set disassembly-flavor intel",
+              "ignoreFailures": true
+          }
+      ]
+    },
+    {
+      "name": "Python: Current File",
+      "type": "python",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "args": [
+        "--corners-cache",
+        "/home/matt/Documents/GitHub/photonvision/test-resources/calibrationSquaresImg/piCam/640_480_1/corners.vnl",
+        "--lensmodel","LENSMODEL_OPENCV8",
+        "--focal",
+        "1200",
+        "--object-spacing",
+        "0.0254",
+        "--object-width-n",
+        "7",
+        "/home/matt/Documents/GitHub/photonvision/test-resources/calibrationSquaresImg/piCam/640_480_1/*.jpg"
+      ]
+    }
+  ]
+}

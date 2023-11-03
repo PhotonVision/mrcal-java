@@ -1,5 +1,3 @@
-#include <mrcal.h>
+#include <mrcal/mrcal.h>
 
-int main() {
-    return 1;
-}
+

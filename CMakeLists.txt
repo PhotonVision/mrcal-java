@@ -9,19 +9,20 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 
-# Grab boost
-include(FetchContent)
+# # Grab mrcal
+# include(FetchContent)
+# FetchContent_Declare(
+#   mrcal
+#   GIT_REPOSITORY https://github.com/dkogan/mrcal
+#   GIT_TAG b79b1d42f658ff5bdafe81bd2b0bacb4b5a62b86
+# )
+# FetchContent_MakeAvailable(mrcal)
+# SET(MRCAL_INCLUDE_DIR ${mrcal_SOURCE_DIR})
 
-FetchContent_Declare(
-  mrcal
-  GIT_REPOSITORY https://github.com/dkogan/mrcal
-  GIT_TAG b79b1d42f658ff5bdafe81bd2b0bacb4b5a62b86
-)
-FetchContent_MakeAvailable(mrcal)
-
-SET(MRCAL_INCLUDE_DIR ${mrcal_SOURCE_DIR})
-
-
+# OpenCV
+set(OpenCV_STATIC ON)
+find_package(OpenCV REQUIRED)
+include_directories("${OpenCV_INCLUDE_DIRS}")
 
 find_package(JNI)
 if (JNI_FOUND)
@@ -45,16 +46,19 @@ set(
 
 # Create shared library
 add_library(mrcal_jni ${INCLUDE_HPP} ${SRC_HPP} ${SRC_CPP})
-target_include_directories(mrcal_jni PUBLIC ${JNI_INCLUDE_DIRS} ${MRCAL_INCLUDE_DIR})
-
+target_include_directories(mrcal_jni PUBLIC ${JNI_INCLUDE_DIRS} )
+target_link_libraries(mrcal_jni ${OpenCV_LIBS} mrcal)
 
 SET_TARGET_PROPERTIES(mrcal_jni PROPERTIES LINK_FLAGS "-Wl,--version-script=\"${CMAKE_CURRENT_SOURCE_DIR}/linux/exports.txt\"")
 
 
 # Test script for checking ou linker
 add_executable(mrcal_jni_test mrcal_test.cpp)
-target_link_libraries(mrcal_jni_test PUBLIC mrcal_jni) 
-
-set(THREADS_PREFER_PTHREAD_FLAG ON)
-find_package(Threads REQUIRED)
-target_link_libraries(mrcal_jni_test PRIVATE Threads::Threads ${CMAKE_DL_LIBS})
+# target_link_libraries(mrcal_jni_test PUBLIC mrcal_jni) 
+# set(THREADS_PREFER_PTHREAD_FLAG ON)
+# find_package(Threads REQUIRED)
+target_link_libraries(mrcal_jni_test PRIVATE 
+    # Threads::Threads 
+    # ${CMAKE_DL_LIBS} 
+    mrcal
+)
