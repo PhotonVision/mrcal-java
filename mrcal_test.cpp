@@ -2,6 +2,8 @@
 #include <vector>
 #include <malloc.h>
 #include <cstdio>
+#include <algorithm>
+#include <chrono>
 
 extern "C" {
   // Seems to be missing C++ guards
@@ -23,7 +25,7 @@ bool lensmodel_one_validate_args(
     mrcal_lensmodel_t *mrcal_lensmodel,
     std::vector<double> intrinsics, bool do_check_layout);
 
-int main() {
+int mrcal_main() {
 
   // Number of board observations we've got. List of boards. in python, it's
   // (number of chessboard pictures) x (rows) x (cos) x (3)
@@ -40,32 +42,27 @@ int main() {
   // TODO set sizes and populate
   int imagersize[] = {640, 480};
 
-  mrcal_calobject_warp_t * calobject_warp = NULL;  // this is non-NULL for the final solve! TODO confirm this
+  mrcal_calobject_warp_t calobject_warp = {0, 0};  
 
   int Nobservations_point_triangulated = 0; // no clue what this is
 
   int Npoints = 0;       // seems like this is also unused? whack
   int Npoints_fixed = 0; // seems like this is also unused? whack
 
-  int do_optimize_intrinsics_core = false; // basically just non-splined should always be true
-  int do_optimize_intrinsics_distortions = false; // can skip intrinsics if we want
-  int do_optimize_extrinsics = -1; // can skip extrinsics if we want
-  int do_optimize_frames = -1;
-  int do_optimize_calobject_warp = false;
-  int do_apply_regularization = false;
-  int do_apply_outlier_rejection = false; // can also skip
+  int do_optimize_intrinsics_core = 1; // basically just non-splined should always be true
+  int do_optimize_intrinsics_distortions = 1; // can skip intrinsics if we want
+  int do_optimize_extrinsics = 1; // can skip extrinsics if we want
+  int do_optimize_frames = 1;
+  int do_optimize_calobject_warp = 0;
+  int do_apply_regularization = 1;
+  int do_apply_outlier_rejection = 1; // can also skip
 
   mrcal_lensmodel_t mrcal_lensmodel;
-  mrcal_lensmodel.type = MRCAL_LENSMODEL_STEREOGRAPHIC; // TODO expose other models
+  mrcal_lensmodel.type = MRCAL_LENSMODEL_OPENCV8; // TODO expose other models
 
-  // pure pinhole for initial solve
+  // pure pinhole guess for initial solve
   std::vector<double> intrinsics = {
-      1200, 1200, 319.5, 239.5};
-
-  // // This is valid for OPENCV8 (8 distortion coefficients + pinhole params)
-  // std::vector<double> intrinsics = {
-  //     700, 700, 320, 240, 0, 0,
-  //     0,   0,   0,   0,   0, 0}; // best guess at intrinsics from prior solve
+      1200, 1200, 319.5, 239.5, 0, 0, 0, 0, 0, 0, 0, 0};
 
   // Number of cameras to solve for intrinsics
   int Ncameras_intrinsics = 1;
@@ -164,7 +161,7 @@ int main() {
   mrcal_pose_t *c_extrinsics = extrinsics_rt_fromref;
   mrcal_pose_t *c_frames = (mrcal_pose_t *)frames_rt_toref.data();
   mrcal_point3_t *c_points = points;
-  mrcal_calobject_warp_t *c_calobject_warp = calobject_warp;
+  mrcal_calobject_warp_t *c_calobject_warp = &calobject_warp;
 
   // in
   int *c_imagersizes = imagersize;
@@ -172,6 +169,8 @@ int main() {
   mrcal_problem_constants_t problem_constants = {
       .point_min_range = point_min_range, .point_max_range = point_max_range};
   int verbose = 0;
+
+  auto start = std::chrono::steady_clock::now();
 
   auto stats = mrcal_optimize(
       c_b_packed_final, Nstate * sizeof(double), c_x_final, Nmeasurements * sizeof(double),
@@ -187,8 +186,29 @@ int main() {
       calibration_object_height_n, verbose,
       false);
 
-      std::printf("Total error pixels: %f\n", stats.rms_reproj_error__pixels);
-      std::printf("Outliers: %i\n", stats.Noutliers_board);
+  auto dt = std::chrono::steady_clock::now() - start;
+  int dt_ms = dt.count();
+
+  // Stat prints I copied from Python
+  int total_points = calibration_object_width_n * calibration_object_height_n * Nobservations_board;
+  // Measurements=corner locations, in pixels. Recall the shape is (num pictures) * (rows x cols in chessboard) * (x, y)
+
+  double max_error = *std::max_element(c_x_final, c_x_final + Nmeasurements);
+  
+  // for (int i = 0; i < sizeof(c_x_final); i+= 2) {
+  //   mrcal_point2_t &error_pixels = *reinterpret_cast<mrcal_point2_t*>(c_x_final + i);
+  //   max_error = std::max(max_error, std::max(error_pixels.x, error_pixels.y));
+  // }
+
+  std::printf("\n===============================\n\n");
+  std::printf("RMS Reprojection Error: %.2f pixels\n", stats.rms_reproj_error__pixels);
+  std::printf("Worst residual (by measurement): %.1f pixels\n", max_error);
+  std::printf("Noutliers: %i of %i (%i percent of the data)\n", stats.Noutliers_board, total_points, 100 * (stats.Noutliers_board/total_points));
+  std::printf("calobject_warp: [%f, %f]\n", calobject_warp.x2, calobject_warp.y2);
+  std::printf("dt: %f ms\n", dt_ms/1e6);
+  std::printf("Intrinsics:\n");
+  for (auto i : intrinsics) std::printf("%f ", i);
+  
 
   return 0;
 }
@@ -219,7 +239,8 @@ static mrcal_problem_selections_t construct_problem_selections(
           .do_optimize_frames = do_optimize_frames,
           .do_optimize_calobject_warp = do_optimize_calobject_warp,
           .do_apply_regularization = do_apply_regularization,
-          .do_apply_outlier_rejection = do_apply_outlier_rejection};
+          .do_apply_outlier_rejection = do_apply_outlier_rejection,
+          .do_apply_regularization_unity_cam01 = false};
 }
 
 bool lensmodel_one_validate_args(mrcal_lensmodel_t *mrcal_lensmodel, std::vector<double> intrinsics, bool do_check_layout) {
@@ -233,4 +254,9 @@ bool lensmodel_one_validate_args(mrcal_lensmodel_t *mrcal_lensmodel, std::vector
   }
 
   return true;
+}
+
+
+int main() {
+  for (int i = 0; i < 10; i++) mrcal_main();
 }
