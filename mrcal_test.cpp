@@ -5,7 +5,7 @@
 
 extern "C" {
   // Seems to be missing C++ guards
-  #include "mrcal/mrcal.h"
+  #include "mrcal.h"
 }
 
 #define BARF(args...) std::fprintf(stderr, ##args)
@@ -47,13 +47,13 @@ int main() {
   int Npoints = 0;       // seems like this is also unused? whack
   int Npoints_fixed = 0; // seems like this is also unused? whack
 
-  bool do_optimize_intrinsics_core = true; // basically just non-splined should always be true
-  bool do_optimize_intrinsics_distortions = false; // can skip intrinsics if we want
-  bool do_optimize_extrinsics = true; // can skip extrinsics if we want
-  bool do_optimize_frames = true;
-  bool do_optimize_calobject_warp = false;
-  bool do_apply_regularization = false;
-  bool do_apply_outlier_rejection = false; // can also skip
+  int do_optimize_intrinsics_core = false; // basically just non-splined should always be true
+  int do_optimize_intrinsics_distortions = false; // can skip intrinsics if we want
+  int do_optimize_extrinsics = -1; // can skip extrinsics if we want
+  int do_optimize_frames = -1;
+  int do_optimize_calobject_warp = false;
+  int do_apply_regularization = false;
+  int do_apply_outlier_rejection = false; // can also skip
 
   mrcal_lensmodel_t mrcal_lensmodel;
   mrcal_lensmodel.type = MRCAL_LENSMODEL_STEREOGRAPHIC; // TODO expose other models
@@ -67,7 +67,8 @@ int main() {
   //     700, 700, 320, 240, 0, 0,
   //     0,   0,   0,   0,   0, 0}; // best guess at intrinsics from prior solve
 
-  int Ncameras_intrinsics = intrinsics.size();
+  // Number of cameras to solve for intrinsics
+  int Ncameras_intrinsics = 1;
 
   // Hard-coded to match out 8 frames from above (borrowed from python)
   std::vector<mrcal_point3_t> indices_frame_camintrinsics_camextrinsics = {
@@ -126,8 +127,9 @@ int main() {
 
   mrcal_pose_t extrinsics_rt_fromref[0]; // Always zero for single camera, it seems?
   mrcal_point3_t points[0]; // Seems to always to be None for single camera?
-  int Ncameras_extrinsics = sizeof(extrinsics_rt_fromref) / sizeof(mrcal_pose_t); // Seems to always be zero for single camera
+  int Ncameras_extrinsics = 0; // Seems to always be zero for single camera
   int Nframes = frames_rt_toref.size() / 6; // 3 translational and 3 rotational DOFs per pose
+  mrcal_observation_point_triangulated_t *observations_point_triangulated = NULL;
 
   if (!lensmodel_one_validate_args(&mrcal_lensmodel, intrinsics,
                                    false))
@@ -146,6 +148,7 @@ int main() {
 
   int Nmeasurements = mrcal_num_measurements(
       Nobservations_board, Nobservations_point,
+      observations_point_triangulated, 0, // hard-coded to 0
       calibration_object_width_n, calibration_object_height_n,
       Ncameras_intrinsics, Ncameras_extrinsics, Nframes, Npoints, Npoints_fixed,
       problem_selections, &mrcal_lensmodel);
@@ -168,20 +171,24 @@ int main() {
   auto point_min_range = -1.0, point_max_range = -1.0;
   mrcal_problem_constants_t problem_constants = {
       .point_min_range = point_min_range, .point_max_range = point_max_range};
-  int verbose = 1;
+  int verbose = 0;
 
-  mrcal_optimize(
+  auto stats = mrcal_optimize(
       c_b_packed_final, Nstate * sizeof(double), c_x_final, Nmeasurements * sizeof(double),
       c_intrinsics, c_extrinsics, c_frames, c_points, c_calobject_warp,
-      Ncameras_intrinsics, Ncameras_extrinsics, Nframes, Npoints, Npoints_fixed,
-      c_observations_board, c_observations_point, Nobservations_board,
-      Nobservations_point,
-      c_observations_board_pool, 
+      Ncameras_intrinsics, Ncameras_extrinsics, Nframes,
+      Npoints, Npoints_fixed,
+      c_observations_board, c_observations_point,
+      Nobservations_board, Nobservations_point,
+      observations_point_triangulated, 0,
+      c_observations_board_pool, c_observations_point_pool,
       &mrcal_lensmodel, c_imagersizes, problem_selections, &problem_constants,
       calibration_object_spacing, calibration_object_width_n,
       calibration_object_height_n, verbose,
-
       false);
+
+      std::printf("Total error pixels: %f\n", stats.rms_reproj_error__pixels);
+      std::printf("Outliers: %i\n", stats.Noutliers_board);
 
   return 0;
 }
