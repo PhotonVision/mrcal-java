@@ -126,8 +126,8 @@ Java_org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate_1camera
 
   for (size_t i = 0; i < boards_observed; i++) {
       auto seed_pose = getSeedPose(&(*observations.begin()) + (i * points_in_board), boardSize, imagerSize, boardSpacing, focalLenGuessMM);
-      std::printf("Seed pose %lu: r %f %f %f t %f %f %f\n", i, seed_pose.r.x,
-                  seed_pose.r.y, seed_pose.r.z, seed_pose.t.x, seed_pose.t.y, seed_pose.t.z);
+      // std::printf("Seed pose %lu: r %f %f %f t %f %f %f\n", i, seed_pose.r.x,
+      //             seed_pose.r.y, seed_pose.r.z, seed_pose.t.x, seed_pose.t.y, seed_pose.t.z);
 
       // Add to seed poses
       total_frames_rt_toref.push_back(seed_pose);

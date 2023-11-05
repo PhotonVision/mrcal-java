@@ -300,7 +300,7 @@ mrcal_pose_t getSeedPose(const mrcal_point3_t *c_observations_board_pool, Size b
   for (auto a : objectPoints)
     objectPoints3.push_back(Point3f(a.x, a.y, 0));
   solvePnP(objectPoints3, imagePoints, cameraMatrix, distCoeffs, rvec, tvec,
-           false, SOLVEPNP_ITERATIVE);
+           false, SOLVEPNP_EPNP);
 
   return mrcal_pose_t{.r = {.x = rvec(0), .y = rvec(1), .z = rvec(2)},
                        .t = {.x = tvec(0), .y = tvec(1), .z = tvec(2)}};
