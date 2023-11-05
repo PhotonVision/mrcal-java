@@ -11,7 +11,8 @@ extern "C" {
 #include <span>
 #include <vector>
 
-struct mrcal_result {
+class mrcal_result {
+public:
   bool success;
   std::vector<double> intrinsics;
   double rms_error;
@@ -20,6 +21,10 @@ struct mrcal_result {
 };
 
 #include <opencv2/opencv.hpp>
+
+std::tuple<mrcal_pose_t, std::vector<cv::Point2f>>
+getSeedPose(const mrcal_point3_t *c_observations_board_pool, cv::Size boardSize,
+            cv::Size imagerSize);
 
 mrcal_result mrcal_main(
     // List, depth is ordered array observation[N frames, object_height,

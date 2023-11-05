@@ -95,19 +95,43 @@ Java_MrCalJNI_mrcal_1calibrate_1camera
    jdouble boardSpacing, jint imageWidth, jint imageHeight)
 {
   // Pull out arrays. We rely on data being packed and aligned to make this
-  // work!
+  // work! Observations should be [x, y, level]
   std::span<mrcal_point3_t> observations{
       reinterpret_cast<mrcal_point3_t *>(
           env->GetDoubleArrayElements(observations_board, 0)),
       env->GetArrayLength(observations_board) / sizeof(mrcal_point3_t)};
-  std::span<mrcal_pose_t> frames{
-      reinterpret_cast<mrcal_pose_t *>(
-          env->GetDoubleArrayElements(frames_rt_toref, 0)),
-      env->GetArrayLength(frames_rt_toref) / sizeof(mrcal_pose_t)};
 
-  auto calibration_result = mrcal_main(
-      observations, frames, cv::Size{boardWidth, boardHeight},
-      static_cast<double>(boardSpacing), cv::Size{imageWidth, imageHeight});
+  assert(observations.size() % (boardWidth * boardHeight) == 0);
+  size_t boards_observed = observations.size() / (boardWidth * boardHeight);
+
+  const auto boardSize = cv::Size{boardWidth, boardHeight};
+  const auto imagerSize = cv::Size{imageWidth, imageHeight};
+
+  // down big list of observations/extrinsic guesses (one per board object)
+  std::vector<mrcal_point3_t> total_observations_board;
+  std::vector<mrcal_pose_t> total_frames_rt_toref;
+
+  // for (size_t i = 0; i < boards_observed; i++) {
+  //     auto [ret, imagePoints] =
+  //         getSeedPose(value.data(), boardSize, imagerSize);
+  //     std::printf("Seed pose %s: r %f %f %f t %f %f %f\n", key.c_str(), ret.r.x,
+  //                 ret.r.y, ret.r.z, ret.t.x, ret.t.y, ret.t.z);
+
+  //     // Append to the Big List of board corners/levels
+  //     observations_board.insert(observations_board.end(), value.begin(),
+  //                               value.end());
+  //     // And list of pose seeds
+  //     frames_rt_toref.push_back(ret);
+  //   } else {
+  //     std::printf("No points for %s\n", key.c_str());
+  // }
+
+  // Convert detection level to weights
+  // TODO
+
+  // auto calibration_result =
+      mrcal_main(total_observations_board, total_frames_rt_toref, boardSize,
+                 static_cast<double>(boardSpacing), imagerSize);
 
   // Find the constructor
   static jmethodID constructor =

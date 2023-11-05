@@ -55,8 +55,8 @@ SET_TARGET_PROPERTIES(mrcal_jni PROPERTIES LINK_FLAGS "-Wl,--version-script=\"${
 
 
 # Test script for checking ou linker
-add_executable(mrcal_jni_test mrcal_test.cpp)
-# target_link_libraries(mrcal_jni_test PUBLIC mrcal_jni)
+add_executable(mrcal_jni_test mrcal_test.cpp mrcal_wrapper.cpp)
+# target_link_libraries(``mrcal_jni``_test PUBLIC mrcal_jni)
 # set(THREADS_PREFER_PTHREAD_FLAG ON)
 # find_package(Threads REQUIRED)
 target_include_directories(mrcal_jni_test PRIVATE ../mrcal)
