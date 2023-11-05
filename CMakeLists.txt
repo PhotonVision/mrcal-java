@@ -46,29 +46,24 @@ set(
 )
 set(
     SRC_CPP
-    mrcal_jni.cpp
+    mrcal_jni.h
     mrcal_wrapper.cpp
+    mrcal_jni.cpp
 )
 
 # Create shared library
-add_library(mrcal_jni ${INCLUDE_HPP} ${SRC_HPP} ${SRC_CPP})
+add_library(mrcal_jni SHARED ${INCLUDE_HPP} ${SRC_HPP} ${SRC_CPP})
 target_include_directories(mrcal_jni PUBLIC ${JNI_INCLUDE_DIRS} )
 target_include_directories(mrcal_jni PRIVATE ../mrcal)
 target_link_libraries(mrcal_jni ${OpenCV_LIBS} /home/matt/github/mrcal/libmrcal.so)
 
 SET_TARGET_PROPERTIES(mrcal_jni PROPERTIES LINK_FLAGS "-Wl,--version-script=\"${CMAKE_CURRENT_SOURCE_DIR}/linux/exports.txt\"")
 
-
-# Test script for checking ou linker
+# Test script for checking our linker
 add_executable(mrcal_jni_test mrcal_test.cpp mrcal_wrapper.cpp)
-# target_link_libraries(``mrcal_jni``_test PUBLIC mrcal_jni)
-# set(THREADS_PREFER_PTHREAD_FLAG ON)
-# find_package(Threads REQUIRED)
+target_link_libraries(mrcal_jni_test PUBLIC mrcal_jni)
 target_include_directories(mrcal_jni_test PRIVATE ../mrcal)
 target_link_libraries(mrcal_jni_test PRIVATE
-    # Threads::Threads
-    # ${CMAKE_DL_LIBS}
-    # mrcal
     ${OpenCV_LIBS}
     /home/matt/github/mrcal/libmrcal.so
     /home/matt/github/vnlog/libvnlog.so

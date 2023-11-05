@@ -5,7 +5,7 @@
 #include <cstdio>
 #include <span>
 #include <vector>
-
+#include <algorithm>
 #include "mrcal_wrapper.h"
 
 // JClass helper from wpilib
@@ -82,13 +82,15 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
   return JNI_VERSION_1_6;
 }
 
+} // extern "C"
+
 /*
  * Class:     MrCalJNI_mrcal_1calibrate
  * Method:    1camera
  * Signature: ([D[DIIDII)Ljava/lang/Object;
  */
-JNIEXPORT jobject JNICALL
-Java_org_photonvision_mrcal_MrCalJNI_mrcal_calibrate_camera
+__attribute__((visibility("default"))) JNIEXPORT jobject JNICALL
+Java_org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate_1camera
   (JNIEnv *env, jclass, jdoubleArray observations_board,
    jint boardWidth, jint boardHeight,
    jdouble boardSpacing, jint imageWidth, jint imageHeight, jdouble focalLenGuessMM)
@@ -98,7 +100,7 @@ Java_org_photonvision_mrcal_MrCalJNI_mrcal_calibrate_camera
   std::span<mrcal_point3_t> observations{
       reinterpret_cast<mrcal_point3_t *>(
           env->GetDoubleArrayElements(observations_board, 0)),
-      env->GetArrayLength(observations_board) / sizeof(mrcal_point3_t)};
+      env->GetArrayLength(observations_board) / 3};
 
   size_t points_in_board = boardWidth * boardHeight;
   assert(observations.size() % points_in_board == 0);
@@ -141,18 +143,18 @@ Java_org_photonvision_mrcal_MrCalJNI_mrcal_calibrate_camera
   }
 
   size_t Nintrinsics = stats.intrinsics.size();
-  jdouble intrinsics_arr[Nintrinsics] = {0};
-  jdoubleArray intrinsics = MakeJDoubleArray(env, intrinsics_arr, sizeof(intrinsics_arr));
   size_t Nresid = stats.residuals.size();
-  jdouble resid_arr[Nresid] = {0};
-  jdoubleArray residuals = MakeJDoubleArray(env, resid_arr, sizeof(resid_arr));
+
+  jdoubleArray intrinsics = MakeJDoubleArray(env, stats.intrinsics.data(), Nintrinsics);
+  jdoubleArray residuals = MakeJDoubleArray(env, stats.residuals.data(), Nresid);
   jboolean success = stats.success;
   jdouble rms_err = stats.rms_error;
+  jdouble warp_x = stats.calobject_warp.x2;
+  jdouble warp_y = stats.calobject_warp.y2;
+  jint Noutliers = stats.Noutliers_board;
 
   // Actually call the constructor (TODO)
-  auto ret = env->NewObject(detectionClass, constructor, success, intrinsics, rms_err, residuals);
+  auto ret = env->NewObject(detectionClass, constructor, success, intrinsics, rms_err, residuals, warp_x, warp_y, Noutliers);
 
   return ret;
 }
-
-} // extern "C"

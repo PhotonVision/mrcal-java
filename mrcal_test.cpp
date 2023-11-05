@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "mrcal_wrapper.h"
+#include "mrcal_jni.h"
 
 using namespace cv;
 
@@ -132,4 +133,9 @@ int homography_test() {
   return true;
 }
 
-int main() { homography_test(); }
+int main() { 
+  // homography_test(); 
+  Java_org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate_1camera(
+    nullptr, {}, 0, 0, 0, 0, 0, 0, 0
+  );
+}
