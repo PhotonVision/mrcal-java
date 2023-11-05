@@ -65,4 +65,5 @@ target_link_libraries(mrcal_jni_test PRIVATE
     # mrcal
     ${OpenCV_LIBS}
     /home/matt/github/mrcal/libmrcal.so
+    /home/matt/github/vnlog/libvnlog.so
 )
