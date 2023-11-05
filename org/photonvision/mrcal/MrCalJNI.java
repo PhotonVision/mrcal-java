@@ -39,7 +39,6 @@ class MrCalJNI {
 
     public static void main(String[] args) {
         System.load("/home/matt/github/mrcal-java/build/libmrcal_jni.so");
-        System.out.println("Guh");
 
         for (int i = 0; i < 10; i++) {
 
@@ -148,11 +147,15 @@ class MrCalJNI {
                     415.074118, 1.0, 277.713041, 411.798257, 1.0, 331.76678, 407.068828, 1.0, 382.058162, 404.138822,
                     1.0, 431.852815, 401.145043, 1.0, 478.272757, 398.091691, 1.0 };
 
-            var start = System.nanoTime();
-            var result = mrcal_calibrate_camera(observations, 7, 7, 0.0254, 640, 480, 1200);
-            var dt = System.nanoTime() - start;
-            System.out.printf("Calibrated in %f ms!\n", dt / 1e6);
-            System.out.printf("stats:\n" + result + "\n");
+            try {
+                var start = System.nanoTime();
+                var result = mrcal_calibrate_camera(observations, 7, 7, 0.0254, 640, 480, 1200);
+                var dt = System.nanoTime() - start;
+                System.out.printf("Calibrated in %f ms!\n", dt / 1e6);
+                System.out.printf("stats:\n" + result + "\n");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 }

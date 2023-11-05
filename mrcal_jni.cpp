@@ -7,6 +7,7 @@
 #include <vector>
 #include <algorithm>
 #include "mrcal_wrapper.h"
+#include <stdexcept>
 
 // JClass helper from wpilib
 #define WPI_JNI_MAKEJARRAY(T, F)                                               \
@@ -103,7 +104,18 @@ Java_org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate_1camera
       env->GetArrayLength(observations_board) / 3};
 
   size_t points_in_board = boardWidth * boardHeight;
-  assert(observations.size() % points_in_board == 0);
+  if(observations.size() % points_in_board != 0) {
+    jclass exception_class = env->FindClass("java/lang/Exception");
+    if (exception_class && env) {
+      (env)->ExceptionClear();
+      env->ThrowNew(exception_class, "Observation list length does not match board size!");
+      return {};
+    } else {
+      // ????
+      std::cerr << "Observation list length does not match board size!\n";
+    }
+  }
+
   size_t boards_observed = observations.size() / points_in_board;
 
   const auto boardSize = cv::Size{boardWidth, boardHeight};
