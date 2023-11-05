@@ -361,7 +361,7 @@ int homography_test() {
     const char *const *name = vnlog_parser_record_from_key(&ctx, "filename");
     const char *const *x = vnlog_parser_record_from_key(&ctx, "x");
     const char *const *y = vnlog_parser_record_from_key(&ctx, "y");
-    const char *const *level = vnlog_parser_record_from_key(&ctx, "level");
+    const char *const *level_ = vnlog_parser_record_from_key(&ctx, "level");
 
     // From calibration.py:
     // if weight_column_kind == 'level': the 4th column is a decimation level of
@@ -374,8 +374,15 @@ int homography_test() {
 
     try {
       using namespace std;
+      double level = stod(*level_);
+      double weight;
+      if (level < 0) {
+        weight = -1;
+      } else {
+        weight = std::pow(0.5, level);
+      }
       points[*name].push_back(
-          mrcal_point3_t{stod(*x), stod(*y), std::pow(0.5, stod(*level))});
+          mrcal_point3_t{stod(*x), stod(*y), weight});
       // std::printf("put %s\n", *name);
     } catch (std::exception e) {
     }
