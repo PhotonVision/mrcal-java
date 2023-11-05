@@ -5,11 +5,11 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdio>
+#include <stdexcept>
 #include <vector>
 
-#include <cstdio>
 #include <opencv2/opencv.hpp>
-#include <stdexcept>
+
 using namespace cv;
 
 extern "C" {
@@ -32,13 +32,13 @@ bool lensmodel_one_validate_args(mrcal_lensmodel_t *mrcal_lensmodel,
                                  bool do_check_layout);
 
 int mrcal_main(
-  // List, depth is ordered array observation[N frames, object_height,
-  // object_width] = [x,y, weight] weight<0 means ignored)
-  std::vector<mrcal_point3_t> observations_board, 
-  // RT transform from camera to object
-    std::vector<mrcal_pose_t> frames_rt_toref, 
+    // List, depth is ordered array observation[N frames, object_height,
+    // object_width] = [x,y, weight] weight<0 means ignored)
+    std::vector<mrcal_point3_t> observations_board,
+    // RT transform from camera to object
+    std::vector<mrcal_pose_t> frames_rt_toref,
     // Chessboard size, in corners (not squares)
-    Size calobjectSize, 
+    Size calobjectSize,
     // res, pixels
     Size cameraRes) {
   // Number of board observations we've got. List of boards. in python, it's
@@ -50,8 +50,10 @@ int mrcal_main(
   // solve?
   int Nobservations_point = 0;
 
-  int calibration_object_width_n = calobjectSize.width;         // Object width, in # of corners
-  int calibration_object_height_n = calobjectSize.height;        // Object height, in # of corners
+  int calibration_object_width_n =
+      calobjectSize.width; // Object width, in # of corners
+  int calibration_object_height_n =
+      calobjectSize.height;                   // Object height, in # of corners
   double calibration_object_spacing = 0.0254; // square size, in
 
   // TODO set sizes and populate
@@ -79,8 +81,7 @@ int mrcal_main(
   // pure pinhole guess for initial solve
   double cx = (cameraRes.width / 2.0) - 0.5;
   double cy = (cameraRes.height / 2.0) - 0.5;
-  std::vector<double> intrinsics = {1200, 1200, cx, cy, 0, 0,
-                                    0,    0,    0,     0,     0, 0};
+  std::vector<double> intrinsics = {1200, 1200, cx, cy, 0, 0, 0, 0, 0, 0, 0, 0};
 
   // Number of cameras to solve for intrinsics
   int Ncameras_intrinsics = 1;
@@ -96,8 +97,7 @@ int mrcal_main(
   mrcal_point3_t observations_point[0];
 
   // Pool is the raw observation backing array
-  mrcal_point3_t *c_observations_board_pool =
-      (observations_board.data());
+  mrcal_point3_t *c_observations_board_pool = (observations_board.data());
   mrcal_point3_t *c_observations_point_pool = observations_point;
 
   // Copy from board/point pool above, using some code borrowed from
@@ -136,7 +136,8 @@ int mrcal_main(
       extrinsics_rt_fromref[0]; // Always zero for single camera, it seems?
   mrcal_point3_t points[0];     // Seems to always to be None for single camera?
   int Ncameras_extrinsics = 0;  // Seems to always be zero for single camera
-  int Nframes = frames_rt_toref.size(); // Number of pictures of the object we've got
+  int Nframes =
+      frames_rt_toref.size(); // Number of pictures of the object we've got
   mrcal_observation_point_triangulated_t *observations_point_triangulated =
       NULL;
 
@@ -273,9 +274,9 @@ bool lensmodel_one_validate_args(mrcal_lensmodel_t *mrcal_lensmodel,
   return true;
 }
 
-std::tuple<mrcal_pose_t, std::vector<Point2f>> getSeedPose(
-    const mrcal_point3_t *c_observations_board_pool, 
-    Size boardSize, Size imagerSize) {
+std::tuple<mrcal_pose_t, std::vector<Point2f>>
+getSeedPose(const mrcal_point3_t *c_observations_board_pool, Size boardSize,
+            Size imagerSize) {
   using namespace std;
 
   if (!c_observations_board_pool) {
@@ -301,7 +302,7 @@ std::tuple<mrcal_pose_t, std::vector<Point2f>> getSeedPose(
         imagePoints.emplace_back(corner.x, corner.y);
         objectPoints.push_back(Point3f(j * squareSize, i * squareSize, 0));
       } else {
-        printf("Ignoring %i,%i!\n", i, j);
+        std::printf("Ignoring %i,%i!\n", i, j);
       }
     }
   }
@@ -317,76 +318,66 @@ std::tuple<mrcal_pose_t, std::vector<Point2f>> getSeedPose(
   solvePnP(objectPoints3, imagePoints, cameraMatrix, distCoeffs, rvec, tvec,
            false, SOLVEPNP_ITERATIVE);
 
-  return 
-  {
+  return {
 
-  mrcal_pose_t{.r = {.x = rvec(0), .y = rvec(1), .z = rvec(2)},
-                      .t = {.x = tvec(0), .y = tvec(1), .z = tvec(2)}},
+      mrcal_pose_t{.r = {.x = rvec(0), .y = rvec(1), .z = rvec(2)},
+                   .t = {.x = tvec(0), .y = tvec(1), .z = tvec(2)}},
 
-                      imagePoints};
+      imagePoints};
 }
 
 extern "C" {
-  #include "../vnlog/vnlog-parser.h"
-}
+#include "../vnlog/vnlog-parser.h"
+} // extern "C"
 int homography_test() {
 
-    FILE* fp = fopen("/home/matt/github/c920_cal/corners.vnl", "r");
-    if(fp == NULL)
-        return  -1;
+  Size boardSize = {10, 10};
+  Size imagerSize = {1600, 896};
+  std::FILE *fp = std::fopen("/home/matt/github/c920_cal/corners.vnl", "r");
+  if (fp == NULL)
+    return -1;
 
-    vnlog_parser_t ctx;
-    if(VNL_OK != vnlog_parser_init(&ctx, fp))
-        return -1;  
+  vnlog_parser_t ctx;
+  if (VNL_OK != vnlog_parser_init(&ctx, fp))
+    return -1;
 
-    std::map<std::string, std::vector<mrcal_point3_t>> points;
-    int i_record = 0;
-    vnlog_parser_result_t result;
-    while(VNL_OK == (result = vnlog_parser_read_record(&ctx, fp)))
-    {
-        const char*const* name = vnlog_parser_record_from_key(&ctx, "filename");
-        const char*const* x = vnlog_parser_record_from_key(&ctx, "x");
-        const char*const* y = vnlog_parser_record_from_key(&ctx, "y");
-        const char*const* level = vnlog_parser_record_from_key(&ctx, "level");
+  std::map<std::string, std::vector<mrcal_point3_t>> points;
+  int i_record = 0;
+  vnlog_parser_result_t result;
+  while (VNL_OK == (result = vnlog_parser_read_record(&ctx, fp))) {
+    const char *const *name = vnlog_parser_record_from_key(&ctx, "filename");
+    const char *const *x = vnlog_parser_record_from_key(&ctx, "x");
+    const char *const *y = vnlog_parser_record_from_key(&ctx, "y");
+    const char *const *level = vnlog_parser_record_from_key(&ctx, "level");
 
-        try {
-          using namespace std;
-          points[*name].push_back(mrcal_point3_t { 
-            stod(*x),
-            stod(*y),
-            stod(*level)
-           });
-        } catch (std::exception e) {}
+    try {
+      using namespace std;
+      points[*name].push_back(mrcal_point3_t{stod(*x), stod(*y), stod(*level)});
+    } catch (std::exception e) {
     }
+  }
 
-    vnlog_parser_free(&ctx);
-
+  vnlog_parser_free(&ctx);
 
   std::vector<mrcal_point3_t> observations_board;
   std::vector<mrcal_pose_t> frames_rt_toref;
 
-  Size boardSize = {10, 10};
-  Size imagerSize = {1600, 896};
-
-  for (const auto & [key, value] : points) {
+  for (const auto &[key, value] : points) {
     if (value.size()) {
-      auto [ret, imagePoints] = getSeedPose(value.data(), boardSize, imagerSize);
-      std::printf("Seed pose %s: r %f %f %f t %f %f %f\n", key.c_str(), ret.r.x, ret.r.y, ret.r.z,
-                  ret.t.x, ret.t.y, ret.t.z);
+      auto [ret, imagePoints] =
+          getSeedPose(value.data(), boardSize, imagerSize);
+      std::printf("Seed pose %s: r %f %f %f t %f %f %f\n", key.c_str(), ret.r.x,
+                  ret.r.y, ret.r.z, ret.t.x, ret.t.y, ret.t.z);
 
       // Append to the Big List of board corners/levels
-      observations_board.insert(observations_board.end(), value.begin(), value.end());
+      observations_board.insert(observations_board.end(), value.begin(),
+                                value.end());
       // And list of pose seeds
       frames_rt_toref.push_back(ret);
     }
   }
 
-  return mrcal_main(
-    observations_board,
-    frames_rt_toref,
-    boardSize, 
-    imagerSize
-  );
+  return mrcal_main(observations_board, frames_rt_toref, boardSize, imagerSize);
 }
 
 int main() {
