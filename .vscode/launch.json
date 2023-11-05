@@ -37,15 +37,17 @@
       "justMyCode": false,
       "args": [
         "--corners-cache",
-        "/home/matt/github/c920_cal/corners.vnl",
+        "/home/matt/github/photon_640_480/corners.vnl",
         "--lensmodel","LENSMODEL_OPENCV8",
         "--focal",
         "1200",
         "--object-spacing",
         "0.0254",
         "--object-width-n",
-        "10",
-        "/home/matt/github/c920_cal/*.jpg"
+        // "10",
+        "7",
+        // "/home/matt/github/c920_cal/*.jpg"
+        "/home/matt/github/photon_640_480/*.jpg"
       ]
     }
   ]

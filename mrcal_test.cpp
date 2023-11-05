@@ -71,7 +71,7 @@ int mrcal_main(
   int do_optimize_intrinsics_distortions = 1; // can skip intrinsics if we want
   int do_optimize_extrinsics = 1;             // can skip extrinsics if we want
   int do_optimize_frames = 1;
-  int do_optimize_calobject_warp = 0;
+  int do_optimize_calobject_warp = 1;
   int do_apply_regularization = 1;
   int do_apply_outlier_rejection = 1; // can also skip
 
@@ -90,7 +90,8 @@ int mrcal_main(
   std::vector<mrcal_point3_t> indices_frame_camintrinsics_camextrinsics;
   // Frame index, camera number, (camera number)-1???
   for (int i = 0; i < Nobservations_board; i++) {
-    indices_frame_camintrinsics_camextrinsics.push_back({(double)i, 0, -1});
+    indices_frame_camintrinsics_camextrinsics.push_back(
+        {static_cast<double>(i), 0, -1});
   }
 
   // Empty vector just to pass in so it's not NULL?
@@ -171,7 +172,7 @@ int mrcal_main(
   // Seeds
   double *c_intrinsics = intrinsics.data();
   mrcal_pose_t *c_extrinsics = extrinsics_rt_fromref;
-  mrcal_pose_t *c_frames = (mrcal_pose_t *)frames_rt_toref.data();
+  mrcal_pose_t *c_frames = frames_rt_toref.data();
   mrcal_point3_t *c_points = points;
   mrcal_calobject_warp_t *c_calobject_warp = &calobject_warp;
 
@@ -216,15 +217,16 @@ int mrcal_main(
   std::printf("RMS Reprojection Error: %.2f pixels\n",
               stats.rms_reproj_error__pixels);
   std::printf("Worst residual (by measurement): %.1f pixels\n", max_error);
-  std::printf("Noutliers: %i of %i (%i percent of the data)\n",
+  std::printf("Noutliers: %i of %i (%.1f percent of the data)\n",
               stats.Noutliers_board, total_points,
-              100 * (stats.Noutliers_board / total_points));
+              100.0 * stats.Noutliers_board / total_points);
   std::printf("calobject_warp: [%f, %f]\n", calobject_warp.x2,
               calobject_warp.y2);
   std::printf("dt: %f ms\n", dt_ms / 1e6);
   std::printf("Intrinsics:\n");
   for (auto i : intrinsics)
     std::printf("%f ", i);
+  std::printf("\n");
 
   return 0;
 }
@@ -318,22 +320,33 @@ getSeedPose(const mrcal_point3_t *c_observations_board_pool, Size boardSize,
   solvePnP(objectPoints3, imagePoints, cameraMatrix, distCoeffs, rvec, tvec,
            false, SOLVEPNP_ITERATIVE);
 
-  return {
-
-      mrcal_pose_t{.r = {.x = rvec(0), .y = rvec(1), .z = rvec(2)},
-                   .t = {.x = tvec(0), .y = tvec(1), .z = tvec(2)}},
-
-      imagePoints};
+  return {mrcal_pose_t{.r = {.x = rvec(0), .y = rvec(1), .z = rvec(2)},
+                       .t = {.x = tvec(0), .y = tvec(1), .z = tvec(2)}},
+          imagePoints};
 }
 
 extern "C" {
 #include "../vnlog/vnlog-parser.h"
 } // extern "C"
-int homography_test() {
 
+struct cmpByFilename {
+  bool operator()(const std::string &a, const std::string &b) const {
+    auto a2 = std::stoi(a.substr(3, a.length() - 7));
+    auto b2 = std::stoi(b.substr(3, b.length() - 7));
+    // std::cout << a2 << " _ " << b2 << std::endl;
+    return a2 < b2;
+  }
+};
+
+int homography_test() {
+  // Size boardSize = {7, 7};
+  // Size imagerSize = {640, 480};
+  // std::FILE *fp =
+  //     std::fopen("/home/matt/github/photon_640_480/corners.vnl", "r");
   Size boardSize = {10, 10};
   Size imagerSize = {1600, 896};
   std::FILE *fp = std::fopen("/home/matt/github/c920_cal/corners.vnl", "r");
+
   if (fp == NULL)
     return -1;
 
@@ -350,9 +363,20 @@ int homography_test() {
     const char *const *y = vnlog_parser_record_from_key(&ctx, "y");
     const char *const *level = vnlog_parser_record_from_key(&ctx, "level");
 
+    // From calibration.py:
+    // if weight_column_kind == 'level': the 4th column is a decimation level of
+    // the
+    //   detected corner. If we needed to cut down the image resolution to
+    //   detect a corner, its coordinates are known less precisely, and we use
+    //   that information to weight the errors appropriately later. We set the
+    //   output weight = 1/2^level. If the 4th column is '-' or <0, the given
+    //   point was not detected, and should be ignored: we set weight = -1
+
     try {
       using namespace std;
-      points[*name].push_back(mrcal_point3_t{stod(*x), stod(*y), stod(*level)});
+      points[*name].push_back(
+          mrcal_point3_t{stod(*x), stod(*y), std::pow(0.5, stod(*level))});
+      // std::printf("put %s\n", *name);
     } catch (std::exception e) {
     }
   }
@@ -374,6 +398,8 @@ int homography_test() {
                                 value.end());
       // And list of pose seeds
       frames_rt_toref.push_back(ret);
+    } else {
+      std::printf("No points for %s\n", key.c_str());
     }
   }
 
