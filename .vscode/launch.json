@@ -37,15 +37,15 @@
       "justMyCode": false,
       "args": [
         "--corners-cache",
-        "/home/matt/Documents/GitHub/photonvision/test-resources/calibrationSquaresImg/piCam/640_480_1/corners.vnl",
+        "/home/matt/github/c920_cal/corners.vnl",
         "--lensmodel","LENSMODEL_OPENCV8",
         "--focal",
         "1200",
         "--object-spacing",
         "0.0254",
         "--object-width-n",
-        "7",
-        "/home/matt/Documents/GitHub/photonvision/test-resources/calibrationSquaresImg/piCam/640_480_1/*.jpg"
+        "10",
+        "/home/matt/github/c920_cal/*.jpg"
       ]
     }
   ]
