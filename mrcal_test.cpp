@@ -1,15 +1,16 @@
-#include <stdint.h>
-#include <vector>
+
 #include <malloc.h>
-#include <cstdio>
+#include <stdint.h>
+
 #include <algorithm>
 #include <chrono>
+#include <cstdio>
+#include <vector>
 
-extern "C"
-{
+extern "C" {
 // Seems to be missing C++ guards
 #include "mrcal.h"
-}
+} // extern "C"
 
 #define BARF(args...) std::fprintf(stderr, ##args)
 
@@ -18,23 +19,21 @@ static mrcal_problem_selections_t construct_problem_selections(
     bool do_optimize_intrinsics_core, bool do_optimize_intrinsics_distortions,
     bool do_optimize_extrinsics, bool do_optimize_frames,
     bool do_optimize_calobject_warp, bool do_apply_regularization,
-    bool do_apply_outlier_rejection,
-    bool Ncameras_intrinsics, bool Ncameras_extrinsics, bool Nframes,
-    bool Nobservations_board);
+    bool do_apply_outlier_rejection, bool Ncameras_intrinsics,
+    bool Ncameras_extrinsics, bool Nframes, bool Nobservations_board);
 
-bool lensmodel_one_validate_args(
-    mrcal_lensmodel_t *mrcal_lensmodel,
-    std::vector<double> intrinsics, bool do_check_layout);
+bool lensmodel_one_validate_args(mrcal_lensmodel_t *mrcal_lensmodel,
+                                 std::vector<double> intrinsics,
+                                 bool do_check_layout);
 
-int mrcal_main()
-{
-
+int mrcal_main() {
   // Number of board observations we've got. List of boards. in python, it's
   // (number of chessboard pictures) x (rows) x (cos) x (3)
   // hard-coded to 8, since that's what I've got below
   int Nobservations_board = 8;
 
-  // Looks like this is hard-coded to 0 in Python for initial single-camera solve?
+  // Looks like this is hard-coded to 0 in Python for initial single-camera
+  // solve?
   int Nobservations_point = 0;
 
   int calibration_object_width_n = 7;         // Object width, in # of corners
@@ -51,7 +50,8 @@ int mrcal_main()
   int Npoints = 0;       // seems like this is also unused? whack
   int Npoints_fixed = 0; // seems like this is also unused? whack
 
-  int do_optimize_intrinsics_core = 1;        // basically just non-splined should always be true
+  int do_optimize_intrinsics_core =
+      1; // basically just non-splined should always be true
   int do_optimize_intrinsics_distortions = 1; // can skip intrinsics if we want
   int do_optimize_extrinsics = 1;             // can skip extrinsics if we want
   int do_optimize_frames = 1;
@@ -63,8 +63,8 @@ int mrcal_main()
   mrcal_lensmodel.type = MRCAL_LENSMODEL_OPENCV8; // TODO expose other models
 
   // pure pinhole guess for initial solve
-  std::vector<double> intrinsics = {
-      1200, 1200, 319.5, 239.5, 0, 0, 0, 0, 0, 0, 0, 0};
+  std::vector<double> intrinsics = {1200, 1200, 319.5, 239.5, 0, 0,
+                                    0,    0,    0,     0,     0, 0};
 
   // Number of cameras to solve for intrinsics
   int Ncameras_intrinsics = 1;
@@ -72,48 +72,51 @@ int mrcal_main()
   // Hard-coded to match out 8 frames from above (borrowed from python)
   std::vector<mrcal_point3_t> indices_frame_camintrinsics_camextrinsics = {
       // Frame index, camera number, (camera number)-1???
-      {0, 0, -1},
-      {1, 0, -1},
-      {2, 0, -1},
-      {3, 0, -1},
-      {4, 0, -1},
-      {5, 0, -1},
-      {6, 0, -1},
-      {7, 0, -1},
-      {8, 0, -1}};
+      {0, 0, -1}, {1, 0, -1}, {2, 0, -1}, {3, 0, -1}, {4, 0, -1},
+      {5, 0, -1}, {6, 0, -1}, {7, 0, -1}, {8, 0, -1}};
 
-  // List, depth is ordered array observation[N frames, object_height, object_width] = [x,y, weight]
-  // weight<0 means ignored)
+  // List, depth is ordered array observation[N frames, object_height,
+  // object_width] = [x,y, weight] weight<0 means ignored)
   std::vector<double> observations_board;
   observations_board.reserve(8 * 7 * 7 * 3);
   // Hack in known good observations from VNL
+  // clang-format off
   observations_board = {325.516, 132.934, 1.0, 371.214, 134.351, 1.0, 415.623, 135.342, 1.0, 460.354, 136.823, 1.0, 504.145, 138.109, 1.0, 547.712, 139.65, 1.0, 594.0, 148.683, 1.0, 324.871, 176.873, 1.0, 369.412, 177.909, 1.0, 414.233, 179.545, 1.0, 457.929, 181.193, 1.0, 501.911, 181.665, 1.0, 545.353, 183.286, 1.0, 587.117, 184.587, 1.0, 323.335, 221.308, 1.0, 368.023, 221.689, 1.0, 412.79, 223.232, 1.0, 456.687, 223.741, 1.0, 499.676, 225.028, 1.0, 543.056, 226.144, 1.0, 584.376, 227.355, 1.0, 321.873, 264.356, 1.0, 366.604, 265.474, 1.0, 411.506, 265.928, 1.0, 454.473, 267.156, 1.0, 497.687, 267.316, 1.0, 540.8, 268.549, 1.0, 582.004, 268.906, 1.0, 321.069, 307.494, 1.0, 365.617, 308.399, 1.0, 409.188, 309.055, 1.0, 453.092, 309.161, 1.0, 495.585, 309.516, 1.0, 538.113, 310.626, 1.0, 579.114, 310.916, 1.0, 319.962, 351.063, 1.0, 363.211, 351.18, 1.0, 407.939, 351.029, 1.0, 450.832, 351.136, 1.0, 493.292, 351.66, 1.0, 535.927, 352.151, 1.0, 576.977, 352.415, 1.0, 317.523, 394.612, 1.0, 361.653, 393.122, 1.0, 405.486, 393.69, 1.0, 449.094, 393.107, 1.0, 490.867, 393.069, 1.0, 533.174, 393.251, 1.0, 573.45, 392.904, 1.0, 207.359, 161.061, 1.0, 256.83, 163.237, 1.0, 304.053, 165.752, 1.0, 349.537, 168.3, 1.0, 393.125, 170.923, 1.0, 436.193, 172.818, 1.0, 476.734, 174.922, 1.0, 206.2, 207.683, 1.0, 255.307, 209.547, 1.0, 303.05, 211.483, 1.0, 347.176, 213.29, 1.0, 391.548, 214.998, 1.0, 434.194, 216.182, 1.0, 475.306, 217.711, 1.0, 204.869, 254.591, 1.0, 253.717, 255.146, 1.0, 301.636, 256.939, 1.0, 346.212, 257.436, 1.0, 389.826, 258.667, 1.0, 432.929, 259.004, 1.0, 473.42, 260.297, 1.0, 203.314, 301.767, 1.0, 251.833, 301.487, 1.0, 299.666, 301.357, 1.0, 344.634, 301.545, 1.0, 387.881, 301.493, 1.0, 431.046, 302.38, 1.0, 471.777, 302.712, 1.0, 201.107, 348.792, 1.0, 249.8, 347.677, 1.0, 297.241, 347.004, 1.0, 343.254, 346.381, 1.0, 386.326, 345.487, 1.0, 429.81, 345.23, 1.0, 469.742, 345.034, 1.0, 199.756, 395.295, 1.0, 248.198, 394.029, 1.0, 295.721, 392.398, 1.0, 340.746, 390.831, 1.0, 384.77, 389.311, 1.0, 427.527, 388.627, 1.0, 468.236, 387.648, 1.0, 197.684, 442.702, 1.0, 246.477, 439.342, 1.0, 293.202, 437.257, 1.0, 339.3, 435.403, 1.0, 382.577, 432.917, 1.0, 425.605, 431.302, 1.0, 465.707, 429.225, 1.0, 305.709, 174.707, 1.0, 351.673, 176.16, 1.0, 397.419, 177.562, 1.0, 442.075, 179.037, 1.0, 487.177, 180.891, 1.0, 531.785, 181.86, 1.0, 573.738, 183.557, 1.0, 304.294, 219.62, 1.0, 350.203, 220.724, 1.0, 395.748, 221.699, 1.0, 440.862, 222.973, 1.0, 485.52, 224.85, 1.0, 530.185, 225.869, 1.0, 572.114, 227.503, 1.0, 303.243, 263.59, 1.0, 349.341, 265.627, 1.0, 394.469, 266.043, 1.0, 439.742, 267.237, 1.0, 484.055, 268.79, 1.0, 528.175, 269.724, 1.0, 570.69, 270.726, 1.0, 301.669, 309.033, 1.0, 347.288, 309.528, 1.0, 393.567, 310.66, 1.0, 437.619, 311.441, 1.0, 482.058, 312.254, 1.0, 526.403, 313.246, 1.0, 569.039, 313.931, 1.0, 299.327, 353.836, 1.0, 345.584, 354.487, 1.0, 391.137, 354.882, 1.0, 436.249, 355.728, 1.0, 480.324, 356.082, 1.0, 524.946, 356.456, 1.0, 566.89, 357.05, 1.0, 297.979, 399.116, 1.0, 344.187, 399.653, 1.0, 389.909, 399.152, 1.0, 434.862, 399.209, 1.0, 478.911, 400.062, 1.0, 522.668, 399.882, 1.0, 565.371, 400.272, 1.0, 296.078, 445.016, 1.0, 342.71, 444.04, 1.0, 387.822, 443.536, 1.0, 433.286, 443.428, 1.0, 476.779, 442.87, 1.0, 520.055, 442.343, 1.0, 562.414, 442.205, 1.0, 91.257764, 62.341333, 1.0, 156.367723, 66.97445, 1.0, 218.066065, 71.650665, 1.0, 276.386861, 76.251825, 1.0, 331.055492, 81.147211, 1.0, 383.696897, 84.814439, 1.0, 430.893194, 89.012836, 1.0, 91.833674, 123.430732, 1.0, 155.905789, 126.34495, 1.0, 217.913026, 129.702873, 1.0, 274.98218, 133.31974, 1.0, 329.372274, 135.975815, 1.0, 380.871511, 138.540811, 1.0, 427.956504, 141.086789, 1.0, 91.771236, 183.897303, 1.0, 156.00571, 185.474423, 1.0, 217.247203, 187.258936, 1.0, 274.219614, 188.919293, 1.0, 327.751591, 189.691818, 1.0, 378.443874, 191.387865, 1.0, 425.847568, 191.85023, 1.0, 91.861943, 243.611033, 1.0, 155.182405, 243.511549, 1.0, 216.832614, 243.122519, 1.0, 273.129283, 242.355705, 1.0, 325.343307, 241.717585, 1.0, 375.851167, 241.553501, 1.0, 423.055064, 241.803709, 1.0, 91.671178, 302.440746, 1.0, 155.273091, 300.177818, 1.0, 215.216509, 297.399528, 1.0, 272.414663, 294.579327, 1.0, 323.101889, 292.983598, 1.0, 373.559284, 291.323639, 1.0, 419.835057, 290.277082, 1.0, 92.857058, 359.214116, 1.0, 154.937554, 355.849957, 1.0, 213.863967, 351.613097, 1.0, 269.476977, 347.721722, 1.0, 321.803464, 344.059031, 1.0, 371.3437, 341.393939, 1.0, 417.516845, 338.833116, 1.0, 93.07796, 415.613843, 1.0, 154.037428, 409.923307, 1.0, 212.834834, 404.066145, 1.0, 267.771666, 398.70259, 1.0, 319.298246, 393.980064, 1.0, 368.22885, 389.593709, 1.0, 414.674171, 385.356734, 1.0, 203.417, 161.504, 1.0, 239.114, 163.886, 1.0, 273.107, 166.449, 1.0, 305.916, 168.563, 1.0, 337.115, 170.991, 1.0, 368.03, 172.639, 1.0, 397.193, 175.197, 1.0, 202.091, 195.309, 1.0, 237.449, 197.254, 1.0, 271.811, 199.126, 1.0, 303.884, 201.339, 1.0, 335.799, 202.775, 1.0, 366.476, 203.962, 1.0, 395.621, 205.477, 1.0, 200.763, 229.055, 1.0, 235.846, 230.374, 1.0, 270.15, 231.701, 1.0, 302.963, 233.051, 1.0, 334.118, 233.94, 1.0, 364.861, 235.145, 1.0, 393.631, 236.292, 1.0, 199.378, 263.126, 1.0, 234.485, 263.471, 1.0, 268.802, 263.894, 1.0, 301.142, 265.078, 1.0, 332.232, 265.327, 1.0, 363.139, 265.668, 1.0, 391.948, 266.685, 1.0, 198.029, 296.998, 1.0, 233.112, 296.261, 1.0, 266.88, 296.323, 1.0, 299.629, 296.302, 1.0, 330.424, 296.424, 1.0, 361.084, 297.002, 1.0, 389.842, 296.814, 1.0, 195.902, 329.523, 1.0, 231.127, 329.233, 1.0, 265.381, 329.073, 1.0, 297.542, 327.951, 1.0, 328.969, 326.898, 1.0, 359.115, 327.24, 1.0, 388.128, 327.274, 1.0, 194.57, 362.996, 1.0, 229.508, 361.475, 1.0, 263.279, 360.993, 1.0, 295.782, 359.146, 1.0, 326.44, 358.773, 1.0, 357.322, 357.793, 1.0, 385.821, 357.147, 1.0, 171.432587, 62.91091, 1.0, 233.543966, 66.989676, 1.0, 292.892198, 71.025168, 1.0, 349.449118, 75.488547, 1.0, 402.475665, 78.823783, 1.0, 454.664044, 82.293706, 1.0, 502.641518, 85.776245, 1.0, 171.514734, 121.993103, 1.0, 232.390154, 125.308964, 1.0, 291.615192, 128.775042, 1.0, 347.095808, 131.455464, 1.0, 399.571916, 133.920527, 1.0, 451.377575, 136.702216, 1.0, 499.408046, 139.005337, 1.0, 170.628776, 181.228863, 1.0, 231.887269, 183.495513, 1.0, 289.549706, 184.943596, 1.0, 345.09963, 186.724366, 1.0, 397.291107, 187.669673, 1.0, 448.012251, 188.937037, 1.0, 495.593336, 189.964319, 1.0, 170.167998, 238.958158, 1.0, 230.55839, 239.418254, 1.0, 288.497209, 239.644103, 1.0, 342.515469, 239.491195, 1.0, 394.007115, 239.553513, 1.0, 444.372561, 240.019514, 1.0, 491.944262, 240.14174, 1.0, 169.316729, 295.157425, 1.0, 229.919699, 293.84609, 1.0, 285.963235, 292.93516, 1.0, 339.829832, 291.170168, 1.0, 391.046096, 291.017874, 1.0, 441.65549, 290.262712, 1.0, 488.484545, 289.606238, 1.0, 169.391253, 351.146683, 1.0, 227.941254, 348.429636, 1.0, 284.725293, 345.328308, 1.0, 337.367128, 343.36398, 1.0, 388.802075, 341.231567, 1.0, 438.530539, 340.104779, 1.0, 485.397165, 338.584278, 1.0, 167.777378, 405.478817, 1.0, 226.74825, 401.012785, 1.0, 282.079972, 397.14788, 1.0, 335.558834, 393.843829, 1.0, 385.729546, 390.894412, 1.0, 434.287148, 387.675643, 1.0, 480.912754, 385.395124, 1.0, 170.954619, 66.207185, 1.0, 232.925674, 70.329078, 1.0, 291.929905, 74.309458, 1.0, 348.618405, 78.647759, 1.0, 401.907159, 82.127252, 1.0, 454.073162, 85.908807, 1.0, 502.384304, 89.612773, 1.0, 170.672483, 125.415122, 1.0, 231.462866, 128.773806, 1.0, 291.032499, 132.398581, 1.0, 345.684337, 134.915663, 1.0, 399.486674, 137.530287, 1.0, 450.909032, 139.320663, 1.0, 498.894327, 142.166906, 1.0, 170.039566, 184.623157, 1.0, 231.346178, 186.659774, 1.0, 289.163911, 188.055595, 1.0, 344.132387, 189.912225, 1.0, 396.321555, 191.204305, 1.0, 447.459807, 192.313964, 1.0, 495.143206, 193.384192, 1.0, 169.696611, 241.964717, 1.0, 229.931254, 242.875875, 1.0, 288.01937, 243.058687, 1.0, 341.607179, 243.256923, 1.0, 393.716058, 243.405927, 1.0, 443.892988, 243.204055, 1.0, 491.834639, 243.220219, 1.0, 168.652822, 299.444695, 1.0, 228.891661, 297.586808, 1.0, 285.893939, 296.780702, 1.0, 340.007199, 294.868026, 1.0, 390.975809, 294.235148, 1.0, 441.273511, 293.692402, 1.0, 487.912647, 293.046936, 1.0, 168.141104, 354.722532, 1.0, 227.178901, 352.045371, 1.0, 284.087214, 349.40292, 1.0, 337.067904, 346.926664, 1.0, 388.459654, 345.137176, 1.0, 437.933373, 343.278757, 1.0, 484.875402, 342.18047, 1.0, 167.262818, 409.231675, 1.0, 225.776135, 404.722118, 1.0, 281.542602, 401.181308, 1.0, 334.813427, 397.384595, 1.0, 385.508089, 394.555612, 1.0, 434.342519, 391.542815, 1.0, 480.929907, 388.713162, 1.0, 167.096579, 75.563045, 1.0, 229.04439, 79.769831, 1.0, 288.347806, 83.685341, 1.0, 345.133847, 87.745306, 1.0, 398.242697, 91.371038, 1.0, 450.258727, 94.791385, 1.0, 498.481567, 98.006336, 1.0, 166.457718, 134.764653, 1.0, 228.030388, 137.434067, 1.0, 287.553592, 141.303498, 1.0, 343.134211, 143.527946, 1.0, 395.604435, 146.123987, 1.0, 447.141897, 148.657081, 1.0, 495.483977, 150.93944, 1.0, 165.628349, 193.670954, 1.0, 227.43617, 195.5245, 1.0, 285.517103, 197.434608, 1.0, 341.055025, 198.983142, 1.0, 393.692971, 199.687896, 1.0, 444.170013, 200.967691, 1.0, 492.007105, 201.736728, 1.0, 165.260826, 251.970544, 1.0, 225.90027, 251.973265, 1.0, 284.098946, 252.060422, 1.0, 338.834414, 251.78845, 1.0, 390.193044, 251.929631, 1.0, 440.831715, 251.885293, 1.0, 488.336721, 252.191396, 1.0, 163.791281, 309.386063, 1.0, 224.929397, 307.232453, 1.0, 282.176961, 305.725654, 1.0, 335.984449, 304.607775, 1.0, 387.27907, 303.196963, 1.0, 437.747368, 302.540835, 1.0, 485.297854, 301.494266, 1.0, 163.968029, 365.050099, 1.0, 223.201096, 362.148888, 1.0, 280.445895, 359.3519, 1.0, 333.640557, 356.491297, 1.0, 385.61138, 354.094168, 1.0, 435.165143, 352.729433, 1.0, 482.091338, 350.966958, 1.0, 163.221401, 419.674165, 1.0, 221.857647, 415.074118, 1.0, 277.713041, 411.798257, 1.0, 331.76678, 407.068828, 1.0, 382.058162, 404.138822, 1.0, 431.852815, 401.145043, 1.0, 478.272757, 398.091691, 1.0};
+  // clang-format on
   // Empty vector just to pass in so it's not NULL?
   mrcal_point3_t observations_point[0];
 
   // Pool is the raw observation backing array
-  mrcal_point3_t *c_observations_board_pool = reinterpret_cast<mrcal_point3_t *>(observations_board.data());
+  mrcal_point3_t *c_observations_board_pool =
+      reinterpret_cast<mrcal_point3_t *>(observations_board.data());
   mrcal_point3_t *c_observations_point_pool = observations_point;
 
-  // Copy from board/point pool above, using some code borrowed from mrcal-pywrap
+  // Copy from board/point pool above, using some code borrowed from
+  // mrcal-pywrap
   mrcal_observation_board_t c_observations_board[Nobservations_board];
   mrcal_observation_point_t c_observations_point[Nobservations_point];
 
-  for (int i_observation = 0; i_observation < Nobservations_board; i_observation++)
-  {
-    int32_t iframe = indices_frame_camintrinsics_camextrinsics.at(i_observation).x;
-    int32_t icam_intrinsics = indices_frame_camintrinsics_camextrinsics.at(i_observation).y;
-    int32_t icam_extrinsics = indices_frame_camintrinsics_camextrinsics.at(i_observation).z;
+  for (int i_observation = 0; i_observation < Nobservations_board;
+       i_observation++) {
+    int32_t iframe =
+        indices_frame_camintrinsics_camextrinsics.at(i_observation).x;
+    int32_t icam_intrinsics =
+        indices_frame_camintrinsics_camextrinsics.at(i_observation).y;
+    int32_t icam_extrinsics =
+        indices_frame_camintrinsics_camextrinsics.at(i_observation).z;
 
     c_observations_board[i_observation].icam.intrinsics = icam_intrinsics;
     c_observations_board[i_observation].icam.extrinsics = icam_extrinsics;
     c_observations_board[i_observation].iframe = iframe;
   }
-  for (int i_observation = 0; i_observation < Nobservations_board; i_observation++)
-  {
-    int32_t i_point = indices_frame_camintrinsics_camextrinsics.at(i_observation).x;
-    int32_t icam_intrinsics = indices_frame_camintrinsics_camextrinsics.at(i_observation).y;
-    int32_t icam_extrinsics = indices_frame_camintrinsics_camextrinsics.at(i_observation).z;
+  for (int i_observation = 0; i_observation < Nobservations_board;
+       i_observation++) {
+    int32_t i_point =
+        indices_frame_camintrinsics_camextrinsics.at(i_observation).x;
+    int32_t icam_intrinsics =
+        indices_frame_camintrinsics_camextrinsics.at(i_observation).y;
+    int32_t icam_extrinsics =
+        indices_frame_camintrinsics_camextrinsics.at(i_observation).z;
 
     c_observations_point[i_observation].icam.intrinsics = icam_intrinsics;
     c_observations_point[i_observation].icam.extrinsics = icam_extrinsics;
@@ -121,38 +124,42 @@ int mrcal_main()
   }
 
   // hard-coded from seed of first solve from Python
+  // clang-format off
   std::vector<double> frames_rt_toref = {
       0.18955483458775926, -0.033038727866531614, 0.022707065075538276, 0.003881530461773854, -0.060050636989376564, 0.6751569929686021, 0.11341870891157015, -0.21416096044771266, 0.025656700549271303, -0.0586624615643108, -0.041434082345533044, 0.6409249466153064, 0.09003894451110257, -0.04465290188401688, 0.023802586908097726, -0.007512243337051627, -0.036381438094227246, 0.664915160152289, 0.22306250816468168, -0.286404122257168, 0.015308161204149554, -0.09275585627950353, -0.07164118510169161, 0.5024534336391102, 0.16554669186808843, -0.23640360992915935, 0.039916560276319485, -0.08525049313901799, -0.05675606115679195, 0.9005871543142424, 0.21152155778240092, -0.23601682761573972, 0.02168544211427134, -0.06129277965976731, -0.07426199231199616, 0.5186553595621118, 0.2070459866214724, -0.23677885924427713, 0.02150145710415093, -0.061584079540542375, -0.07275206818298144, 0.5183080961175048, 0.19937011038568678, -0.243807370146021, 0.02085660175780747, -0.0631523001187754, -0.06861389990046424, 0.5163805642400598};
+  // clang-format on
 
-  mrcal_pose_t extrinsics_rt_fromref[0];    // Always zero for single camera, it seems?
-  mrcal_point3_t points[0];                 // Seems to always to be None for single camera?
-  int Ncameras_extrinsics = 0;              // Seems to always be zero for single camera
-  int Nframes = frames_rt_toref.size() / 6; // 3 translational and 3 rotational DOFs per pose
-  mrcal_observation_point_triangulated_t *observations_point_triangulated = NULL;
+  mrcal_pose_t
+      extrinsics_rt_fromref[0]; // Always zero for single camera, it seems?
+  mrcal_point3_t points[0];     // Seems to always to be None for single camera?
+  int Ncameras_extrinsics = 0;  // Seems to always be zero for single camera
+  int Nframes = frames_rt_toref.size() /
+                6; // 3 translational and 3 rotational DOFs per pose
+  mrcal_observation_point_triangulated_t *observations_point_triangulated =
+      NULL;
 
-  if (!lensmodel_one_validate_args(&mrcal_lensmodel, intrinsics,
-                                   false))
+  if (!lensmodel_one_validate_args(&mrcal_lensmodel, intrinsics, false))
     return false;
 
   mrcal_problem_selections_t problem_selections = construct_problem_selections(
       do_optimize_intrinsics_core, do_optimize_intrinsics_distortions,
       do_optimize_extrinsics, do_optimize_frames, do_optimize_calobject_warp,
-      do_apply_regularization,
-      do_apply_outlier_rejection,
-      Ncameras_intrinsics, Ncameras_extrinsics, Nframes, Nobservations_board);
+      do_apply_regularization, do_apply_outlier_rejection, Ncameras_intrinsics,
+      Ncameras_extrinsics, Nframes, Nobservations_board);
 
   int Nstate = mrcal_num_states(
       Ncameras_intrinsics, Ncameras_extrinsics, Nframes, Npoints, Npoints_fixed,
       Nobservations_board, problem_selections, &mrcal_lensmodel);
 
   int Nmeasurements = mrcal_num_measurements(
-      Nobservations_board, Nobservations_point,
-      observations_point_triangulated, 0, // hard-coded to 0
+      Nobservations_board, Nobservations_point, observations_point_triangulated,
+      0, // hard-coded to 0
       calibration_object_width_n, calibration_object_height_n,
       Ncameras_intrinsics, Ncameras_extrinsics, Nframes, Npoints, Npoints_fixed,
       problem_selections, &mrcal_lensmodel);
 
-  // OK, now we should have everything ready! Just some final setup and then call optimize
+  // OK, now we should have everything ready! Just some final setup and then
+  // call optimize
 
   // Outputs
   double c_b_packed_final[Nstate];
@@ -175,38 +182,42 @@ int mrcal_main()
   auto start = std::chrono::steady_clock::now();
 
   auto stats = mrcal_optimize(
-      c_b_packed_final, Nstate * sizeof(double), c_x_final, Nmeasurements * sizeof(double),
-      c_intrinsics, c_extrinsics, c_frames, c_points, c_calobject_warp,
-      Ncameras_intrinsics, Ncameras_extrinsics, Nframes,
-      Npoints, Npoints_fixed,
-      c_observations_board, c_observations_point,
-      Nobservations_board, Nobservations_point,
-      observations_point_triangulated, 0,
-      c_observations_board_pool, c_observations_point_pool,
-      &mrcal_lensmodel, c_imagersizes, problem_selections, &problem_constants,
-      calibration_object_spacing, calibration_object_width_n,
-      calibration_object_height_n, verbose,
-      false);
+      c_b_packed_final, Nstate * sizeof(double), c_x_final,
+      Nmeasurements * sizeof(double), c_intrinsics, c_extrinsics, c_frames,
+      c_points, c_calobject_warp, Ncameras_intrinsics, Ncameras_extrinsics,
+      Nframes, Npoints, Npoints_fixed, c_observations_board,
+      c_observations_point, Nobservations_board, Nobservations_point,
+      observations_point_triangulated, 0, c_observations_board_pool,
+      c_observations_point_pool, &mrcal_lensmodel, c_imagersizes,
+      problem_selections, &problem_constants, calibration_object_spacing,
+      calibration_object_width_n, calibration_object_height_n, verbose, false);
 
   auto dt = std::chrono::steady_clock::now() - start;
   int dt_ms = dt.count();
 
   // Stat prints I copied from Python
-  int total_points = calibration_object_width_n * calibration_object_height_n * Nobservations_board;
-  // Measurements=corner locations, in pixels. Recall the shape is (num pictures) * (rows x cols in chessboard) * (x, y)
+  int total_points = calibration_object_width_n * calibration_object_height_n *
+                     Nobservations_board;
+  // Measurements=corner locations, in pixels. Recall the shape is (num
+  // pictures) * (rows x cols in chessboard) * (x, y)
 
   double max_error = *std::max_element(c_x_final, c_x_final + Nmeasurements);
 
   // for (int i = 0; i < sizeof(c_x_final); i+= 2) {
-  //   mrcal_point2_t &error_pixels = *reinterpret_cast<mrcal_point2_t*>(c_x_final + i);
-  //   max_error = std::max(max_error, std::max(error_pixels.x, error_pixels.y));
+  //   mrcal_point2_t &error_pixels =
+  //   *reinterpret_cast<mrcal_point2_t*>(c_x_final + i); max_error =
+  //   std::max(max_error, std::max(error_pixels.x, error_pixels.y));
   // }
 
   std::printf("\n===============================\n\n");
-  std::printf("RMS Reprojection Error: %.2f pixels\n", stats.rms_reproj_error__pixels);
+  std::printf("RMS Reprojection Error: %.2f pixels\n",
+              stats.rms_reproj_error__pixels);
   std::printf("Worst residual (by measurement): %.1f pixels\n", max_error);
-  std::printf("Noutliers: %i of %i (%i percent of the data)\n", stats.Noutliers_board, total_points, 100 * (stats.Noutliers_board / total_points));
-  std::printf("calobject_warp: [%f, %f]\n", calobject_warp.x2, calobject_warp.y2);
+  std::printf("Noutliers: %i of %i (%i percent of the data)\n",
+              stats.Noutliers_board, total_points,
+              100 * (stats.Noutliers_board / total_points));
+  std::printf("calobject_warp: [%f, %f]\n", calobject_warp.x2,
+              calobject_warp.y2);
   std::printf("dt: %f ms\n", dt_ms / 1e6);
   std::printf("Intrinsics:\n");
   for (auto i : intrinsics)
@@ -219,11 +230,11 @@ int mrcal_main()
 static mrcal_problem_selections_t construct_problem_selections(
     bool do_optimize_intrinsics_core, bool do_optimize_intrinsics_distortions,
     bool do_optimize_extrinsics, bool do_optimize_frames,
-    bool do_optimize_calobject_warp, bool do_apply_regularization, bool do_apply_outlier_rejection,
+    bool do_optimize_calobject_warp, bool do_apply_regularization,
+    bool do_apply_outlier_rejection,
 
     bool Ncameras_intrinsics, bool Ncameras_extrinsics, bool Nframes,
-    bool Nobservations_board)
-{
+    bool Nobservations_board) {
   // By default we optimize everything we can
   if (do_optimize_intrinsics_core < 0)
     do_optimize_intrinsics_core = Ncameras_intrinsics > 0;
@@ -246,13 +257,12 @@ static mrcal_problem_selections_t construct_problem_selections(
           .do_apply_regularization_unity_cam01 = false};
 }
 
-bool lensmodel_one_validate_args(mrcal_lensmodel_t *mrcal_lensmodel, std::vector<double> intrinsics, bool do_check_layout)
-{
-
+bool lensmodel_one_validate_args(mrcal_lensmodel_t *mrcal_lensmodel,
+                                 std::vector<double> intrinsics,
+                                 bool do_check_layout) {
   int NlensParams = mrcal_lensmodel_num_params(mrcal_lensmodel);
   int NlensParams_have = intrinsics.size();
-  if (NlensParams != NlensParams_have)
-  {
+  if (NlensParams != NlensParams_have) {
     BARF("intrinsics.shape[-1] MUST be %d. Instead got %d", NlensParams,
          NlensParams_have);
     return false;
@@ -261,97 +271,69 @@ bool lensmodel_one_validate_args(mrcal_lensmodel_t *mrcal_lensmodel, std::vector
   return true;
 }
 
+#include <cstdio>
 #include <opencv2/opencv.hpp>
-#include <stdio.h>
-void homography_test()
-{
+mrcal_pose_t getSeedPose(mrcal_point3_t *c_observations_board_pool) {
   using namespace cv;
   using namespace std;
 
   Size boardSize = {7, 7};
+  Size imagerSize = {640, 480};
   float squareSize = 0.0254;
-  vector<Point2f> objectPoints;
-  for (int i = 0; i < boardSize.height; i++)
-    for (int j = 0; j < boardSize.width; j++)
-      objectPoints.push_back(Point2f(float(j * squareSize),
-                                     float(i * squareSize)));
-
-  std::vector<double> observations_board = {325.516, 132.934, 1.0, 371.214, 134.351, 1.0, 415.623, 135.342, 1.0, 460.354, 136.823, 1.0, 504.145, 138.109, 1.0, 547.712, 139.65, 1.0, 594.0, 148.683, 1.0, 324.871, 176.873, 1.0, 369.412, 177.909, 1.0, 414.233, 179.545, 1.0, 457.929, 181.193, 1.0, 501.911, 181.665, 1.0, 545.353, 183.286, 1.0, 587.117, 184.587, 1.0, 323.335, 221.308, 1.0, 368.023, 221.689, 1.0, 412.79, 223.232, 1.0, 456.687, 223.741, 1.0, 499.676, 225.028, 1.0, 543.056, 226.144, 1.0, 584.376, 227.355, 1.0, 321.873, 264.356, 1.0, 366.604, 265.474, 1.0, 411.506, 265.928, 1.0, 454.473, 267.156, 1.0, 497.687, 267.316, 1.0, 540.8, 268.549, 1.0, 582.004, 268.906, 1.0, 321.069, 307.494, 1.0, 365.617, 308.399, 1.0, 409.188, 309.055, 1.0, 453.092, 309.161, 1.0, 495.585, 309.516, 1.0, 538.113, 310.626, 1.0, 579.114, 310.916, 1.0, 319.962, 351.063, 1.0, 363.211, 351.18, 1.0, 407.939, 351.029, 1.0, 450.832, 351.136, 1.0, 493.292, 351.66, 1.0, 535.927, 352.151, 1.0, 576.977, 352.415, 1.0, 317.523, 394.612, 1.0, 361.653, 393.122, 1.0, 405.486, 393.69, 1.0, 449.094, 393.107, 1.0, 490.867, 393.069, 1.0, 533.174, 393.251, 1.0, 573.45, 392.904, 1.0, 207.359, 161.061, 1.0, 256.83, 163.237, 1.0, 304.053, 165.752, 1.0, 349.537, 168.3, 1.0, 393.125, 170.923, 1.0, 436.193, 172.818, 1.0, 476.734, 174.922, 1.0, 206.2, 207.683, 1.0, 255.307, 209.547, 1.0, 303.05, 211.483, 1.0, 347.176, 213.29, 1.0, 391.548, 214.998, 1.0, 434.194, 216.182, 1.0, 475.306, 217.711, 1.0, 204.869, 254.591, 1.0, 253.717, 255.146, 1.0, 301.636, 256.939, 1.0, 346.212, 257.436, 1.0, 389.826, 258.667, 1.0, 432.929, 259.004, 1.0, 473.42, 260.297, 1.0, 203.314, 301.767, 1.0, 251.833, 301.487, 1.0, 299.666, 301.357, 1.0, 344.634, 301.545, 1.0, 387.881, 301.493, 1.0, 431.046, 302.38, 1.0, 471.777, 302.712, 1.0, 201.107, 348.792, 1.0, 249.8, 347.677, 1.0, 297.241, 347.004, 1.0, 343.254, 346.381, 1.0, 386.326, 345.487, 1.0, 429.81, 345.23, 1.0, 469.742, 345.034, 1.0, 199.756, 395.295, 1.0, 248.198, 394.029, 1.0, 295.721, 392.398, 1.0, 340.746, 390.831, 1.0, 384.77, 389.311, 1.0, 427.527, 388.627, 1.0, 468.236, 387.648, 1.0, 197.684, 442.702, 1.0, 246.477, 439.342, 1.0, 293.202, 437.257, 1.0, 339.3, 435.403, 1.0, 382.577, 432.917, 1.0, 425.605, 431.302, 1.0, 465.707, 429.225, 1.0, 305.709, 174.707, 1.0, 351.673, 176.16, 1.0, 397.419, 177.562, 1.0, 442.075, 179.037, 1.0, 487.177, 180.891, 1.0, 531.785, 181.86, 1.0, 573.738, 183.557, 1.0, 304.294, 219.62, 1.0, 350.203, 220.724, 1.0, 395.748, 221.699, 1.0, 440.862, 222.973, 1.0, 485.52, 224.85, 1.0, 530.185, 225.869, 1.0, 572.114, 227.503, 1.0, 303.243, 263.59, 1.0, 349.341, 265.627, 1.0, 394.469, 266.043, 1.0, 439.742, 267.237, 1.0, 484.055, 268.79, 1.0, 528.175, 269.724, 1.0, 570.69, 270.726, 1.0, 301.669, 309.033, 1.0, 347.288, 309.528, 1.0, 393.567, 310.66, 1.0, 437.619, 311.441, 1.0, 482.058, 312.254, 1.0, 526.403, 313.246, 1.0, 569.039, 313.931, 1.0, 299.327, 353.836, 1.0, 345.584, 354.487, 1.0, 391.137, 354.882, 1.0, 436.249, 355.728, 1.0, 480.324, 356.082, 1.0, 524.946, 356.456, 1.0, 566.89, 357.05, 1.0, 297.979, 399.116, 1.0, 344.187, 399.653, 1.0, 389.909, 399.152, 1.0, 434.862, 399.209, 1.0, 478.911, 400.062, 1.0, 522.668, 399.882, 1.0, 565.371, 400.272, 1.0, 296.078, 445.016, 1.0, 342.71, 444.04, 1.0, 387.822, 443.536, 1.0, 433.286, 443.428, 1.0, 476.779, 442.87, 1.0, 520.055, 442.343, 1.0, 562.414, 442.205, 1.0, 91.257764, 62.341333, 1.0, 156.367723, 66.97445, 1.0, 218.066065, 71.650665, 1.0, 276.386861, 76.251825, 1.0, 331.055492, 81.147211, 1.0, 383.696897, 84.814439, 1.0, 430.893194, 89.012836, 1.0, 91.833674, 123.430732, 1.0, 155.905789, 126.34495, 1.0, 217.913026, 129.702873, 1.0, 274.98218, 133.31974, 1.0, 329.372274, 135.975815, 1.0, 380.871511, 138.540811, 1.0, 427.956504, 141.086789, 1.0, 91.771236, 183.897303, 1.0, 156.00571, 185.474423, 1.0, 217.247203, 187.258936, 1.0, 274.219614, 188.919293, 1.0, 327.751591, 189.691818, 1.0, 378.443874, 191.387865, 1.0, 425.847568, 191.85023, 1.0, 91.861943, 243.611033, 1.0, 155.182405, 243.511549, 1.0, 216.832614, 243.122519, 1.0, 273.129283, 242.355705, 1.0, 325.343307, 241.717585, 1.0, 375.851167, 241.553501, 1.0, 423.055064, 241.803709, 1.0, 91.671178, 302.440746, 1.0, 155.273091, 300.177818, 1.0, 215.216509, 297.399528, 1.0, 272.414663, 294.579327, 1.0, 323.101889, 292.983598, 1.0, 373.559284, 291.323639, 1.0, 419.835057, 290.277082, 1.0, 92.857058, 359.214116, 1.0, 154.937554, 355.849957, 1.0, 213.863967, 351.613097, 1.0, 269.476977, 347.721722, 1.0, 321.803464, 344.059031, 1.0, 371.3437, 341.393939, 1.0, 417.516845, 338.833116, 1.0, 93.07796, 415.613843, 1.0, 154.037428, 409.923307, 1.0, 212.834834, 404.066145, 1.0, 267.771666, 398.70259, 1.0, 319.298246, 393.980064, 1.0, 368.22885, 389.593709, 1.0, 414.674171, 385.356734, 1.0, 203.417, 161.504, 1.0, 239.114, 163.886, 1.0, 273.107, 166.449, 1.0, 305.916, 168.563, 1.0, 337.115, 170.991, 1.0, 368.03, 172.639, 1.0, 397.193, 175.197, 1.0, 202.091, 195.309, 1.0, 237.449, 197.254, 1.0, 271.811, 199.126, 1.0, 303.884, 201.339, 1.0, 335.799, 202.775, 1.0, 366.476, 203.962, 1.0, 395.621, 205.477, 1.0, 200.763, 229.055, 1.0, 235.846, 230.374, 1.0, 270.15, 231.701, 1.0, 302.963, 233.051, 1.0, 334.118, 233.94, 1.0, 364.861, 235.145, 1.0, 393.631, 236.292, 1.0, 199.378, 263.126, 1.0, 234.485, 263.471, 1.0, 268.802, 263.894, 1.0, 301.142, 265.078, 1.0, 332.232, 265.327, 1.0, 363.139, 265.668, 1.0, 391.948, 266.685, 1.0, 198.029, 296.998, 1.0, 233.112, 296.261, 1.0, 266.88, 296.323, 1.0, 299.629, 296.302, 1.0, 330.424, 296.424, 1.0, 361.084, 297.002, 1.0, 389.842, 296.814, 1.0, 195.902, 329.523, 1.0, 231.127, 329.233, 1.0, 265.381, 329.073, 1.0, 297.542, 327.951, 1.0, 328.969, 326.898, 1.0, 359.115, 327.24, 1.0, 388.128, 327.274, 1.0, 194.57, 362.996, 1.0, 229.508, 361.475, 1.0, 263.279, 360.993, 1.0, 295.782, 359.146, 1.0, 326.44, 358.773, 1.0, 357.322, 357.793, 1.0, 385.821, 357.147, 1.0, 171.432587, 62.91091, 1.0, 233.543966, 66.989676, 1.0, 292.892198, 71.025168, 1.0, 349.449118, 75.488547, 1.0, 402.475665, 78.823783, 1.0, 454.664044, 82.293706, 1.0, 502.641518, 85.776245, 1.0, 171.514734, 121.993103, 1.0, 232.390154, 125.308964, 1.0, 291.615192, 128.775042, 1.0, 347.095808, 131.455464, 1.0, 399.571916, 133.920527, 1.0, 451.377575, 136.702216, 1.0, 499.408046, 139.005337, 1.0, 170.628776, 181.228863, 1.0, 231.887269, 183.495513, 1.0, 289.549706, 184.943596, 1.0, 345.09963, 186.724366, 1.0, 397.291107, 187.669673, 1.0, 448.012251, 188.937037, 1.0, 495.593336, 189.964319, 1.0, 170.167998, 238.958158, 1.0, 230.55839, 239.418254, 1.0, 288.497209, 239.644103, 1.0, 342.515469, 239.491195, 1.0, 394.007115, 239.553513, 1.0, 444.372561, 240.019514, 1.0, 491.944262, 240.14174, 1.0, 169.316729, 295.157425, 1.0, 229.919699, 293.84609, 1.0, 285.963235, 292.93516, 1.0, 339.829832, 291.170168, 1.0, 391.046096, 291.017874, 1.0, 441.65549, 290.262712, 1.0, 488.484545, 289.606238, 1.0, 169.391253, 351.146683, 1.0, 227.941254, 348.429636, 1.0, 284.725293, 345.328308, 1.0, 337.367128, 343.36398, 1.0, 388.802075, 341.231567, 1.0, 438.530539, 340.104779, 1.0, 485.397165, 338.584278, 1.0, 167.777378, 405.478817, 1.0, 226.74825, 401.012785, 1.0, 282.079972, 397.14788, 1.0, 335.558834, 393.843829, 1.0, 385.729546, 390.894412, 1.0, 434.287148, 387.675643, 1.0, 480.912754, 385.395124, 1.0, 170.954619, 66.207185, 1.0, 232.925674, 70.329078, 1.0, 291.929905, 74.309458, 1.0, 348.618405, 78.647759, 1.0, 401.907159, 82.127252, 1.0, 454.073162, 85.908807, 1.0, 502.384304, 89.612773, 1.0, 170.672483, 125.415122, 1.0, 231.462866, 128.773806, 1.0, 291.032499, 132.398581, 1.0, 345.684337, 134.915663, 1.0, 399.486674, 137.530287, 1.0, 450.909032, 139.320663, 1.0, 498.894327, 142.166906, 1.0, 170.039566, 184.623157, 1.0, 231.346178, 186.659774, 1.0, 289.163911, 188.055595, 1.0, 344.132387, 189.912225, 1.0, 396.321555, 191.204305, 1.0, 447.459807, 192.313964, 1.0, 495.143206, 193.384192, 1.0, 169.696611, 241.964717, 1.0, 229.931254, 242.875875, 1.0, 288.01937, 243.058687, 1.0, 341.607179, 243.256923, 1.0, 393.716058, 243.405927, 1.0, 443.892988, 243.204055, 1.0, 491.834639, 243.220219, 1.0, 168.652822, 299.444695, 1.0, 228.891661, 297.586808, 1.0, 285.893939, 296.780702, 1.0, 340.007199, 294.868026, 1.0, 390.975809, 294.235148, 1.0, 441.273511, 293.692402, 1.0, 487.912647, 293.046936, 1.0, 168.141104, 354.722532, 1.0, 227.178901, 352.045371, 1.0, 284.087214, 349.40292, 1.0, 337.067904, 346.926664, 1.0, 388.459654, 345.137176, 1.0, 437.933373, 343.278757, 1.0, 484.875402, 342.18047, 1.0, 167.262818, 409.231675, 1.0, 225.776135, 404.722118, 1.0, 281.542602, 401.181308, 1.0, 334.813427, 397.384595, 1.0, 385.508089, 394.555612, 1.0, 434.342519, 391.542815, 1.0, 480.929907, 388.713162, 1.0, 167.096579, 75.563045, 1.0, 229.04439, 79.769831, 1.0, 288.347806, 83.685341, 1.0, 345.133847, 87.745306, 1.0, 398.242697, 91.371038, 1.0, 450.258727, 94.791385, 1.0, 498.481567, 98.006336, 1.0, 166.457718, 134.764653, 1.0, 228.030388, 137.434067, 1.0, 287.553592, 141.303498, 1.0, 343.134211, 143.527946, 1.0, 395.604435, 146.123987, 1.0, 447.141897, 148.657081, 1.0, 495.483977, 150.93944, 1.0, 165.628349, 193.670954, 1.0, 227.43617, 195.5245, 1.0, 285.517103, 197.434608, 1.0, 341.055025, 198.983142, 1.0, 393.692971, 199.687896, 1.0, 444.170013, 200.967691, 1.0, 492.007105, 201.736728, 1.0, 165.260826, 251.970544, 1.0, 225.90027, 251.973265, 1.0, 284.098946, 252.060422, 1.0, 338.834414, 251.78845, 1.0, 390.193044, 251.929631, 1.0, 440.831715, 251.885293, 1.0, 488.336721, 252.191396, 1.0, 163.791281, 309.386063, 1.0, 224.929397, 307.232453, 1.0, 282.176961, 305.725654, 1.0, 335.984449, 304.607775, 1.0, 387.27907, 303.196963, 1.0, 437.747368, 302.540835, 1.0, 485.297854, 301.494266, 1.0, 163.968029, 365.050099, 1.0, 223.201096, 362.148888, 1.0, 280.445895, 359.3519, 1.0, 333.640557, 356.491297, 1.0, 385.61138, 354.094168, 1.0, 435.165143, 352.729433, 1.0, 482.091338, 350.966958, 1.0, 163.221401, 419.674165, 1.0, 221.857647, 415.074118, 1.0, 277.713041, 411.798257, 1.0, 331.76678, 407.068828, 1.0, 382.058162, 404.138822, 1.0, 431.852815, 401.145043, 1.0, 478.272757, 398.091691, 1.0};
-  mrcal_point3_t *c_observations_board_pool = reinterpret_cast<mrcal_point3_t *>(observations_board.data()) + (4 * 7*7);
-
-  vector<Point2f> imagePoints;
-  for (int i = 0; i < boardSize.height; i++)
-  {
-    for (int j = 0; j < boardSize.width; j++)
-    {
-      auto &corner = c_observations_board_pool[i * boardSize.height + j];
-      imagePoints.emplace_back(corner.x, corner.y);
-      cout << corner.x << ", " << corner.y << endl;
-    }
-  }
-
-  Mat H = findHomography(objectPoints, imagePoints);
-
-  cout << "Homography:\n"
-       << H << endl;
-
-  // Magic code from https://docs.opencv.org/4.5.5/d9/dab/tutorial_homography.html#tutorial_homography_Demo1
-
-  // Normalization to ensure that ||c1|| = 1
-  double norm = sqrt(H.at<double>(0, 0) * H.at<double>(0, 0) +
-                     H.at<double>(1, 0) * H.at<double>(1, 0) +
-                     H.at<double>(2, 0) * H.at<double>(2, 0));
-  H /= norm;
-  Mat c1 = H.col(0);
-  Mat c2 = H.col(1);
-  Mat c3 = c1.cross(c2);
-  Mat tvec = H.col(2);
-  Mat R(3, 3, CV_64F);
-  for (int i = 0; i < 3; i++)
-  {
-    R.at<double>(i, 0) = c1.at<double>(i, 0);
-    R.at<double>(i, 1) = c2.at<double>(i, 0);
-    R.at<double>(i, 2) = c3.at<double>(i, 0);
-  }
-
-  cout << "R (before polar decomposition):\n"
-       << R << "\ndet(R): " << determinant(R) << endl;
-  Mat W, U, Vt;
-  SVDecomp(R, W, U, Vt);
-  R = U * Vt;
-  cout << "R (after polar decomposition):\n"
-       << R << "\ndet(R): " << determinant(R) << endl;
-
-  Mat rvec;
-  Rodrigues(R, rvec);
-
-  cout << "Rvec\n"
-       << rvec << "\ntvec\n"
-       << tvec << endl;
 
   double fx = 1200;
   double fy = fx;
-  Mat cameraMatrix = (Mat_<double>(3, 3)
-                          << fx,
-                      0, 319.5,
-                      0, fy, 239.5,
-                      0, 0, 1);
-  Mat rvec2, tvec2;
+  double cx = (imagerSize.width / 2.0) - 0.5;
+  double cy = (imagerSize.height / 2.0) - 0.5;
+
+  vector<Point3f> objectPoints;
+  vector<Point2f> imagePoints;
+
+  // Fill in object/image points
+  for (int i = 0; i < boardSize.height; i++) {
+    for (int j = 0; j < boardSize.width; j++) {
+      auto &corner = c_observations_board_pool[i * boardSize.height + j];
+      // weight<0 means ignored -- filter these out
+      if (corner.z >= 0) {
+        imagePoints.emplace_back(corner.x, corner.y);
+        objectPoints.push_back(Point3f(j * squareSize, i * squareSize, 0));
+      }
+    }
+  }
+
+  // Initial guess at intrinsics
+  Mat cameraMatrix = (Mat_<double>(3, 3) << fx, 0, cx, 0, fy, cy, 0, 0, 1);
+  Mat distCoeffs = Mat(4, 1, CV_64FC1, Scalar(0));
+
+  Mat_<double> rvec, tvec;
   vector<Point3f> objectPoints3;
   for (auto a : objectPoints)
     objectPoints3.push_back(Point3f(a.x, a.y, 0));
-  solvePnP(objectPoints3, imagePoints, cameraMatrix,
-           Mat(4, 1, CV_64FC1, Scalar(0)), rvec2, tvec2, false);
+  solvePnP(objectPoints3, imagePoints, cameraMatrix, distCoeffs, rvec, tvec,
+           false, SOLVEPNP_SQPNP);
 
+  cout << "\nSolve-PNP Rvec\n" << rvec << "\ntvec\n" << tvec << endl;
 
-  cout << "\nSolve-PNP Rvec\n"
-       << rvec2 << "\ntvec\n"
-       << tvec2 << endl;
+  return mrcal_pose_t{.r = {.x = rvec(0), .y = rvec(1), .z = rvec(2)},
+                      .t = {.x = tvec(0), .y = tvec(1), .z = tvec(2)}};
 }
 
-int main()
-{
+void homography_test() {
+  // Hacked in from a old python run with 640x480 lifecam from photon
+  // clang-format off
+  std::vector<double> observations_board = {325.516, 132.934, 1.0, 371.214, 134.351, 1.0, 415.623, 135.342, 1.0, 460.354, 136.823, 1.0, 504.145, 138.109, 1.0, 547.712, 139.65, 1.0, 594.0, 148.683, 1.0, 324.871, 176.873, 1.0, 369.412, 177.909, 1.0, 414.233, 179.545, 1.0, 457.929, 181.193, 1.0, 501.911, 181.665, 1.0, 545.353, 183.286, 1.0, 587.117, 184.587, 1.0, 323.335, 221.308, 1.0, 368.023, 221.689, 1.0, 412.79, 223.232, 1.0, 456.687, 223.741, 1.0, 499.676, 225.028, 1.0, 543.056, 226.144, 1.0, 584.376, 227.355, 1.0, 321.873, 264.356, 1.0, 366.604, 265.474, 1.0, 411.506, 265.928, 1.0, 454.473, 267.156, 1.0, 497.687, 267.316, 1.0, 540.8, 268.549, 1.0, 582.004, 268.906, 1.0, 321.069, 307.494, 1.0, 365.617, 308.399, 1.0, 409.188, 309.055, 1.0, 453.092, 309.161, 1.0, 495.585, 309.516, 1.0, 538.113, 310.626, 1.0, 579.114, 310.916, 1.0, 319.962, 351.063, 1.0, 363.211, 351.18, 1.0, 407.939, 351.029, 1.0, 450.832, 351.136, 1.0, 493.292, 351.66, 1.0, 535.927, 352.151, 1.0, 576.977, 352.415, 1.0, 317.523, 394.612, 1.0, 361.653, 393.122, 1.0, 405.486, 393.69, 1.0, 449.094, 393.107, 1.0, 490.867, 393.069, 1.0, 533.174, 393.251, 1.0, 573.45, 392.904, 1.0, 207.359, 161.061, 1.0, 256.83, 163.237, 1.0, 304.053, 165.752, 1.0, 349.537, 168.3, 1.0, 393.125, 170.923, 1.0, 436.193, 172.818, 1.0, 476.734, 174.922, 1.0, 206.2, 207.683, 1.0, 255.307, 209.547, 1.0, 303.05, 211.483, 1.0, 347.176, 213.29, 1.0, 391.548, 214.998, 1.0, 434.194, 216.182, 1.0, 475.306, 217.711, 1.0, 204.869, 254.591, 1.0, 253.717, 255.146, 1.0, 301.636, 256.939, 1.0, 346.212, 257.436, 1.0, 389.826, 258.667, 1.0, 432.929, 259.004, 1.0, 473.42, 260.297, 1.0, 203.314, 301.767, 1.0, 251.833, 301.487, 1.0, 299.666, 301.357, 1.0, 344.634, 301.545, 1.0, 387.881, 301.493, 1.0, 431.046, 302.38, 1.0, 471.777, 302.712, 1.0, 201.107, 348.792, 1.0, 249.8, 347.677, 1.0, 297.241, 347.004, 1.0, 343.254, 346.381, 1.0, 386.326, 345.487, 1.0, 429.81, 345.23, 1.0, 469.742, 345.034, 1.0, 199.756, 395.295, 1.0, 248.198, 394.029, 1.0, 295.721, 392.398, 1.0, 340.746, 390.831, 1.0, 384.77, 389.311, 1.0, 427.527, 388.627, 1.0, 468.236, 387.648, 1.0, 197.684, 442.702, 1.0, 246.477, 439.342, 1.0, 293.202, 437.257, 1.0, 339.3, 435.403, 1.0, 382.577, 432.917, 1.0, 425.605, 431.302, 1.0, 465.707, 429.225, 1.0, 305.709, 174.707, 1.0, 351.673, 176.16, 1.0, 397.419, 177.562, 1.0, 442.075, 179.037, 1.0, 487.177, 180.891, 1.0, 531.785, 181.86, 1.0, 573.738, 183.557, 1.0, 304.294, 219.62, 1.0, 350.203, 220.724, 1.0, 395.748, 221.699, 1.0, 440.862, 222.973, 1.0, 485.52, 224.85, 1.0, 530.185, 225.869, 1.0, 572.114, 227.503, 1.0, 303.243, 263.59, 1.0, 349.341, 265.627, 1.0, 394.469, 266.043, 1.0, 439.742, 267.237, 1.0, 484.055, 268.79, 1.0, 528.175, 269.724, 1.0, 570.69, 270.726, 1.0, 301.669, 309.033, 1.0, 347.288, 309.528, 1.0, 393.567, 310.66, 1.0, 437.619, 311.441, 1.0, 482.058, 312.254, 1.0, 526.403, 313.246, 1.0, 569.039, 313.931, 1.0, 299.327, 353.836, 1.0, 345.584, 354.487, 1.0, 391.137, 354.882, 1.0, 436.249, 355.728, 1.0, 480.324, 356.082, 1.0, 524.946, 356.456, 1.0, 566.89, 357.05, 1.0, 297.979, 399.116, 1.0, 344.187, 399.653, 1.0, 389.909, 399.152, 1.0, 434.862, 399.209, 1.0, 478.911, 400.062, 1.0, 522.668, 399.882, 1.0, 565.371, 400.272, 1.0, 296.078, 445.016, 1.0, 342.71, 444.04, 1.0, 387.822, 443.536, 1.0, 433.286, 443.428, 1.0, 476.779, 442.87, 1.0, 520.055, 442.343, 1.0, 562.414, 442.205, 1.0, 91.257764, 62.341333, 1.0, 156.367723, 66.97445, 1.0, 218.066065, 71.650665, 1.0, 276.386861, 76.251825, 1.0, 331.055492, 81.147211, 1.0, 383.696897, 84.814439, 1.0, 430.893194, 89.012836, 1.0, 91.833674, 123.430732, 1.0, 155.905789, 126.34495, 1.0, 217.913026, 129.702873, 1.0, 274.98218, 133.31974, 1.0, 329.372274, 135.975815, 1.0, 380.871511, 138.540811, 1.0, 427.956504, 141.086789, 1.0, 91.771236, 183.897303, 1.0, 156.00571, 185.474423, 1.0, 217.247203, 187.258936, 1.0, 274.219614, 188.919293, 1.0, 327.751591, 189.691818, 1.0, 378.443874, 191.387865, 1.0, 425.847568, 191.85023, 1.0, 91.861943, 243.611033, 1.0, 155.182405, 243.511549, 1.0, 216.832614, 243.122519, 1.0, 273.129283, 242.355705, 1.0, 325.343307, 241.717585, 1.0, 375.851167, 241.553501, 1.0, 423.055064, 241.803709, 1.0, 91.671178, 302.440746, 1.0, 155.273091, 300.177818, 1.0, 215.216509, 297.399528, 1.0, 272.414663, 294.579327, 1.0, 323.101889, 292.983598, 1.0, 373.559284, 291.323639, 1.0, 419.835057, 290.277082, 1.0, 92.857058, 359.214116, 1.0, 154.937554, 355.849957, 1.0, 213.863967, 351.613097, 1.0, 269.476977, 347.721722, 1.0, 321.803464, 344.059031, 1.0, 371.3437, 341.393939, 1.0, 417.516845, 338.833116, 1.0, 93.07796, 415.613843, 1.0, 154.037428, 409.923307, 1.0, 212.834834, 404.066145, 1.0, 267.771666, 398.70259, 1.0, 319.298246, 393.980064, 1.0, 368.22885, 389.593709, 1.0, 414.674171, 385.356734, 1.0, 203.417, 161.504, 1.0, 239.114, 163.886, 1.0, 273.107, 166.449, 1.0, 305.916, 168.563, 1.0, 337.115, 170.991, 1.0, 368.03, 172.639, 1.0, 397.193, 175.197, 1.0, 202.091, 195.309, 1.0, 237.449, 197.254, 1.0, 271.811, 199.126, 1.0, 303.884, 201.339, 1.0, 335.799, 202.775, 1.0, 366.476, 203.962, 1.0, 395.621, 205.477, 1.0, 200.763, 229.055, 1.0, 235.846, 230.374, 1.0, 270.15, 231.701, 1.0, 302.963, 233.051, 1.0, 334.118, 233.94, 1.0, 364.861, 235.145, 1.0, 393.631, 236.292, 1.0, 199.378, 263.126, 1.0, 234.485, 263.471, 1.0, 268.802, 263.894, 1.0, 301.142, 265.078, 1.0, 332.232, 265.327, 1.0, 363.139, 265.668, 1.0, 391.948, 266.685, 1.0, 198.029, 296.998, 1.0, 233.112, 296.261, 1.0, 266.88, 296.323, 1.0, 299.629, 296.302, 1.0, 330.424, 296.424, 1.0, 361.084, 297.002, 1.0, 389.842, 296.814, 1.0, 195.902, 329.523, 1.0, 231.127, 329.233, 1.0, 265.381, 329.073, 1.0, 297.542, 327.951, 1.0, 328.969, 326.898, 1.0, 359.115, 327.24, 1.0, 388.128, 327.274, 1.0, 194.57, 362.996, 1.0, 229.508, 361.475, 1.0, 263.279, 360.993, 1.0, 295.782, 359.146, 1.0, 326.44, 358.773, 1.0, 357.322, 357.793, 1.0, 385.821, 357.147, 1.0, 171.432587, 62.91091, 1.0, 233.543966, 66.989676, 1.0, 292.892198, 71.025168, 1.0, 349.449118, 75.488547, 1.0, 402.475665, 78.823783, 1.0, 454.664044, 82.293706, 1.0, 502.641518, 85.776245, 1.0, 171.514734, 121.993103, 1.0, 232.390154, 125.308964, 1.0, 291.615192, 128.775042, 1.0, 347.095808, 131.455464, 1.0, 399.571916, 133.920527, 1.0, 451.377575, 136.702216, 1.0, 499.408046, 139.005337, 1.0, 170.628776, 181.228863, 1.0, 231.887269, 183.495513, 1.0, 289.549706, 184.943596, 1.0, 345.09963, 186.724366, 1.0, 397.291107, 187.669673, 1.0, 448.012251, 188.937037, 1.0, 495.593336, 189.964319, 1.0, 170.167998, 238.958158, 1.0, 230.55839, 239.418254, 1.0, 288.497209, 239.644103, 1.0, 342.515469, 239.491195, 1.0, 394.007115, 239.553513, 1.0, 444.372561, 240.019514, 1.0, 491.944262, 240.14174, 1.0, 169.316729, 295.157425, 1.0, 229.919699, 293.84609, 1.0, 285.963235, 292.93516, 1.0, 339.829832, 291.170168, 1.0, 391.046096, 291.017874, 1.0, 441.65549, 290.262712, 1.0, 488.484545, 289.606238, 1.0, 169.391253, 351.146683, 1.0, 227.941254, 348.429636, 1.0, 284.725293, 345.328308, 1.0, 337.367128, 343.36398, 1.0, 388.802075, 341.231567, 1.0, 438.530539, 340.104779, 1.0, 485.397165, 338.584278, 1.0, 167.777378, 405.478817, 1.0, 226.74825, 401.012785, 1.0, 282.079972, 397.14788, 1.0, 335.558834, 393.843829, 1.0, 385.729546, 390.894412, 1.0, 434.287148, 387.675643, 1.0, 480.912754, 385.395124, 1.0, 170.954619, 66.207185, 1.0, 232.925674, 70.329078, 1.0, 291.929905, 74.309458, 1.0, 348.618405, 78.647759, 1.0, 401.907159, 82.127252, 1.0, 454.073162, 85.908807, 1.0, 502.384304, 89.612773, 1.0, 170.672483, 125.415122, 1.0, 231.462866, 128.773806, 1.0, 291.032499, 132.398581, 1.0, 345.684337, 134.915663, 1.0, 399.486674, 137.530287, 1.0, 450.909032, 139.320663, 1.0, 498.894327, 142.166906, 1.0, 170.039566, 184.623157, 1.0, 231.346178, 186.659774, 1.0, 289.163911, 188.055595, 1.0, 344.132387, 189.912225, 1.0, 396.321555, 191.204305, 1.0, 447.459807, 192.313964, 1.0, 495.143206, 193.384192, 1.0, 169.696611, 241.964717, 1.0, 229.931254, 242.875875, 1.0, 288.01937, 243.058687, 1.0, 341.607179, 243.256923, 1.0, 393.716058, 243.405927, 1.0, 443.892988, 243.204055, 1.0, 491.834639, 243.220219, 1.0, 168.652822, 299.444695, 1.0, 228.891661, 297.586808, 1.0, 285.893939, 296.780702, 1.0, 340.007199, 294.868026, 1.0, 390.975809, 294.235148, 1.0, 441.273511, 293.692402, 1.0, 487.912647, 293.046936, 1.0, 168.141104, 354.722532, 1.0, 227.178901, 352.045371, 1.0, 284.087214, 349.40292, 1.0, 337.067904, 346.926664, 1.0, 388.459654, 345.137176, 1.0, 437.933373, 343.278757, 1.0, 484.875402, 342.18047, 1.0, 167.262818, 409.231675, 1.0, 225.776135, 404.722118, 1.0, 281.542602, 401.181308, 1.0, 334.813427, 397.384595, 1.0, 385.508089, 394.555612, 1.0, 434.342519, 391.542815, 1.0, 480.929907, 388.713162, 1.0, 167.096579, 75.563045, 1.0, 229.04439, 79.769831, 1.0, 288.347806, 83.685341, 1.0, 345.133847, 87.745306, 1.0, 398.242697, 91.371038, 1.0, 450.258727, 94.791385, 1.0, 498.481567, 98.006336, 1.0, 166.457718, 134.764653, 1.0, 228.030388, 137.434067, 1.0, 287.553592, 141.303498, 1.0, 343.134211, 143.527946, 1.0, 395.604435, 146.123987, 1.0, 447.141897, 148.657081, 1.0, 495.483977, 150.93944, 1.0, 165.628349, 193.670954, 1.0, 227.43617, 195.5245, 1.0, 285.517103, 197.434608, 1.0, 341.055025, 198.983142, 1.0, 393.692971, 199.687896, 1.0, 444.170013, 200.967691, 1.0, 492.007105, 201.736728, 1.0, 165.260826, 251.970544, 1.0, 225.90027, 251.973265, 1.0, 284.098946, 252.060422, 1.0, 338.834414, 251.78845, 1.0, 390.193044, 251.929631, 1.0, 440.831715, 251.885293, 1.0, 488.336721, 252.191396, 1.0, 163.791281, 309.386063, 1.0, 224.929397, 307.232453, 1.0, 282.176961, 305.725654, 1.0, 335.984449, 304.607775, 1.0, 387.27907, 303.196963, 1.0, 437.747368, 302.540835, 1.0, 485.297854, 301.494266, 1.0, 163.968029, 365.050099, 1.0, 223.201096, 362.148888, 1.0, 280.445895, 359.3519, 1.0, 333.640557, 356.491297, 1.0, 385.61138, 354.094168, 1.0, 435.165143, 352.729433, 1.0, 482.091338, 350.966958, 1.0, 163.221401, 419.674165, 1.0, 221.857647, 415.074118, 1.0, 277.713041, 411.798257, 1.0, 331.76678, 407.068828, 1.0, 382.058162, 404.138822, 1.0, 431.852815, 401.145043, 1.0, 478.272757, 398.091691, 1.0};
+  // clang-format on
+  mrcal_point3_t *c_observations_board_pool =
+      reinterpret_cast<mrcal_point3_t *>(observations_board.data());
+
+  for (int i = 0; i < observations_board.size(); i += 7 * 7 * 3) {
+    auto ret = getSeedPose(c_observations_board_pool + i);
+    std::printf("Seed pose: r %f %f %f t %f %f %f\n", ret.r.x, ret.r.y, ret.r.z,
+                ret.t.x, ret.t.y, ret.t.z);
+  }
+}
+
+int main() {
   homography_test();
-  // for (int i = 0; i < 10; i++)
   // mrcal_main();
 }
