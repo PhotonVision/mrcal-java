@@ -1,8 +1,12 @@
-#include <cstdio>
+
+
 #include "mrcal_jni.h"
-#include "mrcal_wrapper.h"
-#include <vector>
+
+#include <cstdio>
 #include <span>
+#include <vector>
+
+#include "mrcal_wrapper.h"
 
 // JClass helper from wpilib
 #define WPI_JNI_MAKEJARRAY(T, F)                                               \
@@ -82,7 +86,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
 /*
  * Class:     MrCalJNI_mrcal_1calibrate
  * Method:    1camera
- * Signature: ([D[DDDDDD)Ljava/lang/Object;
+ * Signature: ([D[DIIDII)Ljava/lang/Object;
  */
 JNIEXPORT jobject JNICALL
 Java_MrCalJNI_mrcal_1calibrate_1camera
@@ -90,21 +94,20 @@ Java_MrCalJNI_mrcal_1calibrate_1camera
    jdoubleArray frames_rt_toref, jint boardWidth, jint boardHeight,
    jdouble boardSpacing, jint imageWidth, jint imageHeight)
 {
+  // Pull out arrays. We rely on data being packed and aligned to make this
+  // work!
+  std::span<mrcal_point3_t> observations{
+      reinterpret_cast<mrcal_point3_t *>(
+          env->GetDoubleArrayElements(observations_board, 0)),
+      env->GetArrayLength(observations_board) / sizeof(mrcal_point3_t)};
+  std::span<mrcal_pose_t> frames{
+      reinterpret_cast<mrcal_pose_t *>(
+          env->GetDoubleArrayElements(frames_rt_toref, 0)),
+      env->GetArrayLength(frames_rt_toref) / sizeof(mrcal_pose_t)};
 
-  // Pull out arrays. We rely on data being packed and aligned to make this work!
-  std::span<mrcal_point3_t> observations {
-    reinterpret_cast<mrcal_point3_t*>(env->GetDoubleArrayElements(observations_board,0)),
-    env->GetArrayLength(observations_board )/ sizeof(mrcal_point3_t)
-  };
-  std::span<mrcal_pose_t> frames {
-    reinterpret_cast<mrcal_pose_t*>(env->GetDoubleArrayElements(frames_rt_toref,0)),
-    env->GetArrayLength(frames_rt_toref) / sizeof(mrcal_pose_t)
-  };
-
-
-  auto calibration_result = mrcal_main(observations, frames,
-  cv::Size{boardWidth, boardHeight}, static_cast<double>(boardSpacing), cv::Size{imageWidth, imageHeight});
-
+  auto calibration_result = mrcal_main(
+      observations, frames, cv::Size{boardWidth, boardHeight},
+      static_cast<double>(boardSpacing), cv::Size{imageWidth, imageHeight});
 
   // Find the constructor
   static jmethodID constructor =

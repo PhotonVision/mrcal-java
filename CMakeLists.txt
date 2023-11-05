@@ -42,6 +42,7 @@ set(
 set(
     SRC_CPP
     mrcal_jni.cpp
+    mrcal_wrapper.cpp
 )
 
 # Create shared library
@@ -55,13 +56,13 @@ SET_TARGET_PROPERTIES(mrcal_jni PROPERTIES LINK_FLAGS "-Wl,--version-script=\"${
 
 # Test script for checking ou linker
 add_executable(mrcal_jni_test mrcal_test.cpp)
-# target_link_libraries(mrcal_jni_test PUBLIC mrcal_jni) 
+# target_link_libraries(mrcal_jni_test PUBLIC mrcal_jni)
 # set(THREADS_PREFER_PTHREAD_FLAG ON)
 # find_package(Threads REQUIRED)
 target_include_directories(mrcal_jni_test PRIVATE ../mrcal)
-target_link_libraries(mrcal_jni_test PRIVATE 
-    # Threads::Threads 
-    # ${CMAKE_DL_LIBS} 
+target_link_libraries(mrcal_jni_test PRIVATE
+    # Threads::Threads
+    # ${CMAKE_DL_LIBS}
     # mrcal
     ${OpenCV_LIBS}
     /home/matt/github/mrcal/libmrcal.so

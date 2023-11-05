@@ -1,17 +1,22 @@
+
+
+#pragma once
+
 extern "C" {
 // Seems to be missing C++ guards
 #include "mrcal.h"
+
 } // extern "C"
 
-#include <vector>
 #include <span>
+#include <vector>
 
 struct mrcal_result {
-    bool success;
-    std::vector<double> intrinsics;
-    double rms_error;
-    std::vector<double> residuals;
-    // TODO standard devs
+  bool success;
+  std::vector<double> intrinsics;
+  double rms_error;
+  std::vector<double> residuals;
+  // TODO standard devs
 };
 
 #include <opencv2/opencv.hpp>
