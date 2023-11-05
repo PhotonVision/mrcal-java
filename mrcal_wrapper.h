@@ -22,9 +22,8 @@ public:
 
 #include <opencv2/opencv.hpp>
 
-std::tuple<mrcal_pose_t, std::vector<cv::Point2f>>
-getSeedPose(const mrcal_point3_t *c_observations_board_pool, cv::Size boardSize,
-            cv::Size imagerSize);
+mrcal_pose_t getSeedPose(const mrcal_point3_t *c_observations_board_pool, cv::Size boardSize,
+            cv::Size imagerSize, double squareSize, double focal_len_guess);
 
 mrcal_result mrcal_main(
     // List, depth is ordered array observation[N frames, object_height,

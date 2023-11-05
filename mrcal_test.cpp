@@ -81,8 +81,8 @@ int homography_test() {
 
   for (const auto &[key, value] : points) {
     if (value.size()) {
-      auto [ret, imagePoints] =
-          getSeedPose(value.data(), boardSize, imagerSize);
+      auto ret =
+          getSeedPose(value.data(), boardSize, imagerSize, 0.0254, 800);
       std::printf("Seed pose %s: r %f %f %f t %f %f %f\n", key.c_str(), ret.r.x,
                   ret.r.y, ret.r.z, ret.t.x, ret.t.y, ret.t.z);
 

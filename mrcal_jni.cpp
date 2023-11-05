@@ -91,7 +91,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
 JNIEXPORT jobject JNICALL
 Java_MrCalJNI_mrcal_1calibrate_1camera
   (JNIEnv *env, jclass, jdoubleArray observations_board,
-   jdoubleArray frames_rt_toref, jint boardWidth, jint boardHeight,
+   jint boardWidth, jint boardHeight,
    jdouble boardSpacing, jint imageWidth, jint imageHeight)
 {
   // Pull out arrays. We rely on data being packed and aligned to make this
@@ -101,36 +101,37 @@ Java_MrCalJNI_mrcal_1calibrate_1camera
           env->GetDoubleArrayElements(observations_board, 0)),
       env->GetArrayLength(observations_board) / sizeof(mrcal_point3_t)};
 
-  assert(observations.size() % (boardWidth * boardHeight) == 0);
-  size_t boards_observed = observations.size() / (boardWidth * boardHeight);
+  size_t points_in_board = boardWidth * boardHeight;
+  assert(observations.size() % points_in_board == 0);
+  size_t boards_observed = observations.size() / points_in_board;
 
   const auto boardSize = cv::Size{boardWidth, boardHeight};
   const auto imagerSize = cv::Size{imageWidth, imageHeight};
 
   // down big list of observations/extrinsic guesses (one per board object)
-  std::vector<mrcal_point3_t> total_observations_board;
   std::vector<mrcal_pose_t> total_frames_rt_toref;
 
-  // for (size_t i = 0; i < boards_observed; i++) {
-  //     auto [ret, imagePoints] =
-  //         getSeedPose(value.data(), boardSize, imagerSize);
-  //     std::printf("Seed pose %s: r %f %f %f t %f %f %f\n", key.c_str(), ret.r.x,
-  //                 ret.r.y, ret.r.z, ret.t.x, ret.t.y, ret.t.z);
+  for (size_t i = 0; i < boards_observed; i++) {
+      auto seed_pose = getSeedPose(&(*observations.begin()) + (i * points_in_board), boardSize, imagerSize);
+      std::printf("Seed pose %lu: r %f %f %f t %f %f %f\n", i, seed_pose.r.x,
+                  seed_pose.r.y, seed_pose.r.z, seed_pose.t.x, seed_pose.t.y, seed_pose.t.z);
 
-  //     // Append to the Big List of board corners/levels
-  //     observations_board.insert(observations_board.end(), value.begin(),
-  //                               value.end());
-  //     // And list of pose seeds
-  //     frames_rt_toref.push_back(ret);
-  //   } else {
-  //     std::printf("No points for %s\n", key.c_str());
-  // }
+      // Add to seed poses
+      total_frames_rt_toref.push_back(seed_pose);
+  }
 
-  // Convert detection level to weights
-  // TODO
+  // Convert detection level to weights (we do a little memory manipulation)
+  for (auto& o : observations) {
+      double& level = o.z;
+      if (level < 0) {
+        o.z = -1;
+      } else {
+        o.z = std::pow(0.5, level);
+      }
+  }
 
-  // auto calibration_result =
-      mrcal_main(total_observations_board, total_frames_rt_toref, boardSize,
+  auto calibration_result =
+      mrcal_main(observations, total_frames_rt_toref, boardSize,
                  static_cast<double>(boardSpacing), imagerSize);
 
   // Find the constructor

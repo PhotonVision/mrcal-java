@@ -281,18 +281,15 @@ bool lensmodel_one_validate_args(mrcal_lensmodel_t *mrcal_lensmodel,
   return true;
 }
 
-std::tuple<mrcal_pose_t, std::vector<Point2f>>
-getSeedPose(const mrcal_point3_t *c_observations_board_pool, Size boardSize,
-            Size imagerSize) {
+mrcal_pose_t getSeedPose(const mrcal_point3_t *c_observations_board_pool, Size boardSize,
+            Size imagerSize, double squareSize, double focal_len_guess) {
   using namespace std;
 
   if (!c_observations_board_pool) {
     throw runtime_error("board was null");
   }
 
-  float squareSize = 0.0254;
-
-  double fx = 1200;
+  double fx = focal_len_guess;
   double fy = fx;
   double cx = (imagerSize.width / 2.0) - 0.5;
   double cy = (imagerSize.height / 2.0) - 0.5;
@@ -325,7 +322,6 @@ getSeedPose(const mrcal_point3_t *c_observations_board_pool, Size boardSize,
   solvePnP(objectPoints3, imagePoints, cameraMatrix, distCoeffs, rvec, tvec,
            false, SOLVEPNP_ITERATIVE);
 
-  return {mrcal_pose_t{.r = {.x = rvec(0), .y = rvec(1), .z = rvec(2)},
-                       .t = {.x = tvec(0), .y = tvec(1), .z = tvec(2)}},
-          imagePoints};
+  return mrcal_pose_t{.r = {.x = rvec(0), .y = rvec(1), .z = rvec(2)},
+                       .t = {.x = tvec(0), .y = tvec(1), .z = tvec(2)}};
 }

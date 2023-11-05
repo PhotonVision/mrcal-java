@@ -68,3 +68,6 @@ target_link_libraries(mrcal_jni_test PRIVATE
     /home/matt/github/mrcal/libmrcal.so
     /home/matt/github/vnlog/libvnlog.so
 )
+
+add_compile_options(mrcal_jni -fsanitize=address -g -Wall)
+add_link_options(mrcal_jni -fsanitize=address -static-libasan -g -Wall)
