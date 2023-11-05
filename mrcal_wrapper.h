@@ -17,6 +17,8 @@ public:
   std::vector<double> intrinsics;
   double rms_error;
   std::vector<double> residuals;
+  mrcal_calobject_warp_t calobject_warp;
+  size_t Noutliers_board;
   // TODO standard devs
 };
 

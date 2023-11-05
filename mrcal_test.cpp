@@ -75,8 +75,16 @@ int homography_test() {
 
   vnlog_parser_free(&ctx);
 
+
+  auto start = std::chrono::steady_clock::now();
+
   std::vector<mrcal_point3_t> observations_board;
   std::vector<mrcal_pose_t> frames_rt_toref;
+  // Pre-allocate worst case
+  size_t total_points = boardSize.width * boardSize.height * points.size();
+  observations_board.reserve(total_points);
+  frames_rt_toref.reserve(points.size());
+
 
   for (const auto &[key, value] : points) {
     if (value.size()) {
@@ -95,8 +103,32 @@ int homography_test() {
     }
   }
 
+
   auto cal_result = mrcal_main(observations_board, frames_rt_toref, boardSize, 0.0254,
                     imagerSize);
+
+  auto dt = std::chrono::steady_clock::now() - start;
+  int dt_ms = dt.count();
+
+  auto& stats = cal_result;
+
+  double max_error = *std::max_element(stats.residuals.begin(), stats.residuals.end());
+
+  std::printf("\n===============================\n\n");
+  std::printf("RMS Reprojection Error: %.2f pixels\n",
+              stats.rms_error);
+  std::printf("Worst residual (by measurement): %.1f pixels\n", max_error);
+  std::printf("Noutliers: %lu of %lu (%.1f percent of the data)\n",
+              stats.Noutliers_board, total_points,
+              100.0 * stats.Noutliers_board / total_points);
+  std::printf("calobject_warp: [%f, %f]\n", stats.calobject_warp.x2,
+              stats.calobject_warp.y2);
+  std::printf("dt, seeding + solve: %f ms\n", dt_ms / 1e6);
+  std::printf("Intrinsics [%lu]:\n", stats.intrinsics.size());
+  for (auto i : stats.intrinsics)
+    std::printf("%f ", i);
+  std::printf("\n");
+
   return true;
 }
 

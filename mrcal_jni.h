@@ -15,9 +15,9 @@ extern "C" {
  * Method:    mrcal_calibrate_camera
  * Signature: ([D[DDDDDD)LMrCalJNI/CalResult;
  */
-JNIEXPORT jobject JNICALL Java_MrCalJNI_mrcal_1calibrate_1camera(
+JNIEXPORT jobject JNICALL Java_org_photonvision_mrcal_MrCalJNI_mrcal_calibrate_camera(
     JNIEnv *, jclass, jdoubleArray, jint, jint, jdouble, jint,
-    jint);
+    jint, jdouble);
 
 #ifdef __cplusplus
 } // extern "C"

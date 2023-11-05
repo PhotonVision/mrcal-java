@@ -72,7 +72,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
     return JNI_ERR;
   }
 
-  detectionClass = JClass(env, "org/photonvision/mrcal/MrCalResult");
+  detectionClass = JClass(env, "org/photonvision/mrcal/MrCalJNI$MrCalResult");
 
   if (!detectionClass) {
     std::printf("Couldn't find class!");
@@ -81,7 +81,6 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
 
   return JNI_VERSION_1_6;
 }
-} // extern "C"
 
 /*
  * Class:     MrCalJNI_mrcal_1calibrate
@@ -89,10 +88,10 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
  * Signature: ([D[DIIDII)Ljava/lang/Object;
  */
 JNIEXPORT jobject JNICALL
-Java_MrCalJNI_mrcal_1calibrate_1camera
+Java_org_photonvision_mrcal_MrCalJNI_mrcal_calibrate_camera
   (JNIEnv *env, jclass, jdoubleArray observations_board,
    jint boardWidth, jint boardHeight,
-   jdouble boardSpacing, jint imageWidth, jint imageHeight)
+   jdouble boardSpacing, jint imageWidth, jint imageHeight, jdouble focalLenGuessMM)
 {
   // Pull out arrays. We rely on data being packed and aligned to make this
   // work! Observations should be [x, y, level]
@@ -112,7 +111,7 @@ Java_MrCalJNI_mrcal_1calibrate_1camera
   std::vector<mrcal_pose_t> total_frames_rt_toref;
 
   for (size_t i = 0; i < boards_observed; i++) {
-      auto seed_pose = getSeedPose(&(*observations.begin()) + (i * points_in_board), boardSize, imagerSize);
+      auto seed_pose = getSeedPose(&(*observations.begin()) + (i * points_in_board), boardSize, imagerSize, boardSpacing, focalLenGuessMM);
       std::printf("Seed pose %lu: r %f %f %f t %f %f %f\n", i, seed_pose.r.x,
                   seed_pose.r.y, seed_pose.r.z, seed_pose.t.x, seed_pose.t.y, seed_pose.t.z);
 
@@ -134,9 +133,9 @@ Java_MrCalJNI_mrcal_1calibrate_1camera
       mrcal_main(observations, total_frames_rt_toref, boardSize,
                  static_cast<double>(boardSpacing), imagerSize);
 
-  // Find the constructor
+  // Find the constructor. Reference: https://www.microfocus.com/documentation/extend-acucobol/925/BKITITJAVAS027.html
   static jmethodID constructor =
-      env->GetMethodID(detectionClass, "<init>", "(IIF[DDD[D[D[DD[D[DD)V");
+      env->GetMethodID(detectionClass, "<init>", "(Z[DD[DDDI)V");
   if (!constructor) {
     return nullptr;
   }
@@ -155,3 +154,5 @@ Java_MrCalJNI_mrcal_1calibrate_1camera
 
   return ret;
 }
+
+} // extern "C"

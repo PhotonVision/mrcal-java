@@ -178,8 +178,6 @@ mrcal_result mrcal_main(
       .point_min_range = point_min_range, .point_max_range = point_max_range};
   int verbose = 0;
 
-  auto start = std::chrono::steady_clock::now();
-
   auto stats = mrcal_optimize(
       c_b_packed_final, Nstate * sizeof(double), c_x_final,
       Nmeasurements * sizeof(double), c_intrinsics, c_extrinsics, c_frames,
@@ -190,9 +188,6 @@ mrcal_result mrcal_main(
       c_observations_point_pool, &mrcal_lensmodel, c_imagersizes,
       problem_selections, &problem_constants, calibration_object_spacing,
       calibration_object_width_n, calibration_object_height_n, verbose, false);
-
-  auto dt = std::chrono::steady_clock::now() - start;
-  int dt_ms = dt.count();
 
   // Stat prints I copied from Python
   int total_points = calibration_object_width_n * calibration_object_height_n *
@@ -208,26 +203,15 @@ mrcal_result mrcal_main(
   //   std::max(max_error, std::max(error_pixels.x, error_pixels.y));
   // }
 
-  std::printf("\n===============================\n\n");
-  std::printf("RMS Reprojection Error: %.2f pixels\n",
-              stats.rms_reproj_error__pixels);
-  std::printf("Worst residual (by measurement): %.1f pixels\n", max_error);
-  std::printf("Noutliers: %i of %i (%.1f percent of the data)\n",
-              stats.Noutliers_board, total_points,
-              100.0 * stats.Noutliers_board / total_points);
-  std::printf("calobject_warp: [%f, %f]\n", calobject_warp.x2,
-              calobject_warp.y2);
-  std::printf("dt: %f ms\n", dt_ms / 1e6);
-  std::printf("Intrinsics [%lu]:\n", intrinsics.size());
-  for (auto i : intrinsics)
-    std::printf("%f ", i);
-  std::printf("\n");
+
 
   mrcal_result ret {
     .success = true,
     .intrinsics = intrinsics,
     .rms_error = stats.rms_reproj_error__pixels,
     .residuals = {c_x_final, c_x_final + Nmeasurements},
+    .calobject_warp = calobject_warp,
+    .Noutliers_board = stats.Noutliers_board,
   };
   return ret;
 }
