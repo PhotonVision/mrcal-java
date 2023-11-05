@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) Photon Vision.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include "mrcal_wrapper.h"
 
 #include <malloc.h>
@@ -26,10 +43,10 @@ bool lensmodel_one_validate_args(mrcal_lensmodel_t *mrcal_lensmodel,
                                  std::vector<double> intrinsics,
                                  bool do_check_layout);
 
-
 // Empty vector just to pass in so it's not NULL?
 mrcal_point3_t observations_point[0];
-mrcal_pose_t extrinsics_rt_fromref[0]; // Always zero for single camera, it seems?
+mrcal_pose_t
+    extrinsics_rt_fromref[0]; // Always zero for single camera, it seems?
 mrcal_point3_t points[0];     // Seems to always to be None for single camera?
 
 mrcal_result mrcal_main(
@@ -101,8 +118,10 @@ mrcal_result mrcal_main(
   // Copy from board/point pool above, using some code borrowed from
   // mrcal-pywrap
   mrcal_observation_board_t c_observations_board[Nobservations_board];
-  // Try to make sure we don't accidentally make a zero-length array or something stupid
-  mrcal_observation_point_t c_observations_point[std::min(Nobservations_point, 1)];
+  // Try to make sure we don't accidentally make a zero-length array or
+  // something stupid
+  mrcal_observation_point_t
+      c_observations_point[std::min(Nobservations_point, 1)];
 
   for (int i_observation = 0; i_observation < Nobservations_board;
        i_observation++) {
@@ -131,7 +150,7 @@ mrcal_result mrcal_main(
     c_observations_point[i_observation].i_point = i_point;
   }
 
-  int Ncameras_extrinsics = 0;  // Seems to always be zero for single camera
+  int Ncameras_extrinsics = 0; // Seems to always be zero for single camera
   int Nframes =
       frames_rt_toref.size(); // Number of pictures of the object we've got
   mrcal_observation_point_triangulated_t *observations_point_triangulated =
@@ -203,15 +222,13 @@ mrcal_result mrcal_main(
   //   std::max(max_error, std::max(error_pixels.x, error_pixels.y));
   // }
 
-
-
-  mrcal_result ret {
-    .success = true,
-    .intrinsics = intrinsics,
-    .rms_error = stats.rms_reproj_error__pixels,
-    .residuals = {c_x_final, c_x_final + Nmeasurements},
-    .calobject_warp = calobject_warp,
-    .Noutliers_board = stats.Noutliers_board,
+  mrcal_result ret{
+      .success = true,
+      .intrinsics = intrinsics,
+      .rms_error = stats.rms_reproj_error__pixels,
+      .residuals = {c_x_final, c_x_final + Nmeasurements},
+      .calobject_warp = calobject_warp,
+      .Noutliers_board = stats.Noutliers_board,
   };
   return ret;
 }
@@ -236,14 +253,17 @@ static mrcal_problem_selections_t construct_problem_selections(
     do_optimize_frames = Nframes > 0;
   if (do_optimize_calobject_warp < 0)
     do_optimize_calobject_warp = Nobservations_board > 0;
-  return {.do_optimize_intrinsics_core = (bool)do_optimize_intrinsics_core,
+  return {.do_optimize_intrinsics_core =
+              static_cast<bool>(do_optimize_intrinsics_core),
           .do_optimize_intrinsics_distortions =
-              (bool)do_optimize_intrinsics_distortions,
-          .do_optimize_extrinsics = (bool)do_optimize_extrinsics,
-          .do_optimize_frames = (bool)do_optimize_frames,
-          .do_optimize_calobject_warp = (bool)do_optimize_calobject_warp,
-          .do_apply_regularization = (bool)do_apply_regularization,
-          .do_apply_outlier_rejection = (bool)do_apply_outlier_rejection,
+              static_cast<bool>(do_optimize_intrinsics_distortions),
+          .do_optimize_extrinsics = static_cast<bool>(do_optimize_extrinsics),
+          .do_optimize_frames = static_cast<bool>(do_optimize_frames),
+          .do_optimize_calobject_warp =
+              static_cast<bool>(do_optimize_calobject_warp),
+          .do_apply_regularization = static_cast<bool>(do_apply_regularization),
+          .do_apply_outlier_rejection =
+              static_cast<bool>(do_apply_outlier_rejection),
           .do_apply_regularization_unity_cam01 = false};
 }
 
@@ -261,9 +281,10 @@ bool lensmodel_one_validate_args(mrcal_lensmodel_t *mrcal_lensmodel,
   return true;
 }
 
-mrcal_pose_t getSeedPose(const mrcal_point3_t *c_observations_board_pool, Size boardSize,
-            Size imagerSize, double squareSize, double focal_len_guess) {
-  using namespace std;
+mrcal_pose_t getSeedPose(const mrcal_point3_t *c_observations_board_pool,
+                         Size boardSize, Size imagerSize, double squareSize,
+                         double focal_len_guess) {
+  using std::vector, std::runtime_error;
 
   if (!c_observations_board_pool) {
     throw runtime_error("board was null");
@@ -303,5 +324,5 @@ mrcal_pose_t getSeedPose(const mrcal_point3_t *c_observations_board_pool, Size b
            false, SOLVEPNP_EPNP);
 
   return mrcal_pose_t{.r = {.x = rvec(0), .y = rvec(1), .z = rvec(2)},
-                       .t = {.x = tvec(0), .y = tvec(1), .z = tvec(2)}};
+                      .t = {.x = tvec(0), .y = tvec(1), .z = tvec(2)}};
 }

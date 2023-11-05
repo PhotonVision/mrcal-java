@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) Photon Vision.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <malloc.h>
 #include <stdint.h>
 
@@ -8,8 +25,8 @@
 #include <stdexcept>
 #include <vector>
 
-#include "mrcal_wrapper.h"
 #include "mrcal_jni.h"
+#include "mrcal_wrapper.h"
 
 using namespace cv;
 
@@ -60,7 +77,7 @@ int homography_test() {
     //   point was not detected, and should be ignored: we set weight = -1
 
     try {
-      using namespace std;
+      using std::stod;
       double level = stod(*level_);
       double weight;
       if (level < 0) {
@@ -70,12 +87,11 @@ int homography_test() {
       }
       points[*name].push_back(mrcal_point3_t{stod(*x), stod(*y), weight});
       // std::printf("put %s\n", *name);
-    } catch (std::exception const& e) {
+    } catch (std::exception const &e) {
     }
   }
 
   vnlog_parser_free(&ctx);
-
 
   auto start = std::chrono::steady_clock::now();
 
@@ -86,11 +102,9 @@ int homography_test() {
   observations_board.reserve(total_points);
   frames_rt_toref.reserve(points.size());
 
-
   for (const auto &[key, value] : points) {
     if (value.size()) {
-      auto ret =
-          getSeedPose(value.data(), boardSize, imagerSize, 0.0254, 800);
+      auto ret = getSeedPose(value.data(), boardSize, imagerSize, 0.0254, 800);
       std::printf("Seed pose %s: r %f %f %f t %f %f %f\n", key.c_str(), ret.r.x,
                   ret.r.y, ret.r.z, ret.t.x, ret.t.y, ret.t.z);
 
@@ -104,20 +118,19 @@ int homography_test() {
     }
   }
 
-
-  auto cal_result = mrcal_main(observations_board, frames_rt_toref, boardSize, 0.0254,
-                    imagerSize);
+  auto cal_result = mrcal_main(observations_board, frames_rt_toref, boardSize,
+                               0.0254, imagerSize);
 
   auto dt = std::chrono::steady_clock::now() - start;
   int dt_ms = dt.count();
 
-  auto& stats = cal_result;
+  auto &stats = cal_result;
 
-  double max_error = *std::max_element(stats.residuals.begin(), stats.residuals.end());
+  double max_error =
+      *std::max_element(stats.residuals.begin(), stats.residuals.end());
 
   std::printf("\n===============================\n\n");
-  std::printf("RMS Reprojection Error: %.2f pixels\n",
-              stats.rms_error);
+  std::printf("RMS Reprojection Error: %.2f pixels\n", stats.rms_error);
   std::printf("Worst residual (by measurement): %.1f pixels\n", max_error);
   std::printf("Noutliers: %lu of %lu (%.1f percent of the data)\n",
               stats.Noutliers_board, total_points,
@@ -133,9 +146,8 @@ int homography_test() {
   return true;
 }
 
-int main() { 
-  // homography_test(); 
+int main() {
+  // homography_test();
   Java_org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate_1camera(
-    nullptr, {}, 0, 0, 0, 0, 0, 0, 0
-  );
+      nullptr, {}, 0, 0, 0, 0, 0, 0, 0);
 }

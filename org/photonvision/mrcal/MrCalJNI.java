@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) Photon Vision.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package org.photonvision.mrcal;
 
 import java.util.Arrays;
@@ -41,7 +58,8 @@ class MrCalJNI {
         System.load("/home/matt/github/mrcal-java/build/libmrcal_jni.so");
 
         for (int i = 0; i < 10; i++) {
-
+            // Order should be: observations[board idx, board width, board height] = (x, y, level)
+            // Not positive if I've switched width and height here, tho
             double[] observations = { 325.516, 132.934, 1.0, 371.214, 134.351, 1.0, 415.623, 135.342, 1.0, 460.354,
                     136.823, 1.0, 504.145, 138.109, 1.0, 547.712, 139.65, 1.0, 594.0, 148.683, 1.0, 324.871, 176.873,
                     1.0, 369.412, 177.909, 1.0, 414.233, 179.545, 1.0, 457.929, 181.193, 1.0, 501.911, 181.665, 1.0,

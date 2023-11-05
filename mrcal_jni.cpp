@@ -1,13 +1,29 @@
-
+/*
+ * Copyright (C) Photon Vision.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 #include "mrcal_jni.h"
 
+#include <algorithm>
 #include <cstdio>
 #include <span>
-#include <vector>
-#include <algorithm>
-#include "mrcal_wrapper.h"
 #include <stdexcept>
+#include <vector>
+
+#include "mrcal_wrapper.h"
 
 // JClass helper from wpilib
 #define WPI_JNI_MAKEJARRAY(T, F)                                               \
@@ -69,7 +85,7 @@ JClass detectionClass;
 extern "C" {
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
   JNIEnv *env;
-  if (vm->GetEnv((void **)(&env), JNI_VERSION_1_6) != JNI_OK) {
+  if (vm->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_6) != JNI_OK) {
     return JNI_ERR;
   }
 
@@ -86,29 +102,30 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
 } // extern "C"
 
 /*
- * Class:     MrCalJNI_mrcal_1calibrate
+ * Class:     org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate
  * Method:    1camera
- * Signature: ([D[DIIDII)Ljava/lang/Object;
+ * Signature: ([DIIDIID)Ljava/lang/Object;
  */
-__attribute__((visibility("default"))) JNIEXPORT jobject JNICALL
+JNIEXPORT jobject JNICALL
 Java_org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate_1camera
-  (JNIEnv *env, jclass, jdoubleArray observations_board,
-   jint boardWidth, jint boardHeight,
-   jdouble boardSpacing, jint imageWidth, jint imageHeight, jdouble focalLenGuessMM)
+  (JNIEnv *env, jclass, jdoubleArray observations_board, jint boardWidth,
+   jint boardHeight, jdouble boardSpacing, jint imageWidth, jint imageHeight,
+   jdouble focalLenGuessMM)
 {
   // Pull out arrays. We rely on data being packed and aligned to make this
   // work! Observations should be [x, y, level]
   std::span<mrcal_point3_t> observations{
       reinterpret_cast<mrcal_point3_t *>(
           env->GetDoubleArrayElements(observations_board, 0)),
-      env->GetArrayLength(observations_board) / 3};
+      env->GetArrayLength(observations_board) / 3lu};
 
   size_t points_in_board = boardWidth * boardHeight;
-  if(observations.size() % points_in_board != 0) {
+  if (observations.size() % points_in_board != 0) {
     jclass exception_class = env->FindClass("java/lang/Exception");
     if (exception_class && env) {
       (env)->ExceptionClear();
-      env->ThrowNew(exception_class, "Observation list length does not match board size!");
+      env->ThrowNew(exception_class,
+                    "Observation list length does not match board size!");
       return {};
     } else {
       // ????
@@ -125,29 +142,32 @@ Java_org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate_1camera
   std::vector<mrcal_pose_t> total_frames_rt_toref;
 
   for (size_t i = 0; i < boards_observed; i++) {
-      auto seed_pose = getSeedPose(&(*observations.begin()) + (i * points_in_board), boardSize, imagerSize, boardSpacing, focalLenGuessMM);
-      // std::printf("Seed pose %lu: r %f %f %f t %f %f %f\n", i, seed_pose.r.x,
-      //             seed_pose.r.y, seed_pose.r.z, seed_pose.t.x, seed_pose.t.y, seed_pose.t.z);
+    auto seed_pose =
+        getSeedPose(&(*observations.begin()) + (i * points_in_board), boardSize,
+                    imagerSize, boardSpacing, focalLenGuessMM);
+    // std::printf("Seed pose %lu: r %f %f %f t %f %f %f\n", i, seed_pose.r.x,
+    //             seed_pose.r.y, seed_pose.r.z, seed_pose.t.x, seed_pose.t.y,
+    //             seed_pose.t.z);
 
-      // Add to seed poses
-      total_frames_rt_toref.push_back(seed_pose);
+    // Add to seed poses
+    total_frames_rt_toref.push_back(seed_pose);
   }
 
   // Convert detection level to weights (we do a little memory manipulation)
-  for (auto& o : observations) {
-      double& level = o.z;
-      if (level < 0) {
-        o.z = -1;
-      } else {
-        o.z = std::pow(0.5, level);
-      }
+  for (auto &o : observations) {
+    double &level = o.z;
+    if (level < 0) {
+      o.z = -1;
+    } else {
+      o.z = std::pow(0.5, level);
+    }
   }
 
-  auto stats =
-      mrcal_main(observations, total_frames_rt_toref, boardSize,
-                 static_cast<double>(boardSpacing), imagerSize);
+  auto stats = mrcal_main(observations, total_frames_rt_toref, boardSize,
+                          static_cast<double>(boardSpacing), imagerSize);
 
-  // Find the constructor. Reference: https://www.microfocus.com/documentation/extend-acucobol/925/BKITITJAVAS027.html
+  // Find the constructor. Reference:
+  // https://www.microfocus.com/documentation/extend-acucobol/925/BKITITJAVAS027.html
   static jmethodID constructor =
       env->GetMethodID(detectionClass, "<init>", "(Z[DD[DDDI)V");
   if (!constructor) {
@@ -157,8 +177,10 @@ Java_org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate_1camera
   size_t Nintrinsics = stats.intrinsics.size();
   size_t Nresid = stats.residuals.size();
 
-  jdoubleArray intrinsics = MakeJDoubleArray(env, stats.intrinsics.data(), Nintrinsics);
-  jdoubleArray residuals = MakeJDoubleArray(env, stats.residuals.data(), Nresid);
+  jdoubleArray intrinsics =
+      MakeJDoubleArray(env, stats.intrinsics.data(), Nintrinsics);
+  jdoubleArray residuals =
+      MakeJDoubleArray(env, stats.residuals.data(), Nresid);
   jboolean success = stats.success;
   jdouble rms_err = stats.rms_error;
   jdouble warp_x = stats.calobject_warp.x2;
@@ -166,7 +188,8 @@ Java_org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate_1camera
   jint Noutliers = stats.Noutliers_board;
 
   // Actually call the constructor (TODO)
-  auto ret = env->NewObject(detectionClass, constructor, success, intrinsics, rms_err, residuals, warp_x, warp_y, Noutliers);
+  auto ret = env->NewObject(detectionClass, constructor, success, intrinsics,
+                            rms_err, residuals, warp_x, warp_y, Noutliers);
 
   return ret;
 }
