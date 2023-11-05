@@ -7,15 +7,11 @@
 #include <cstdio>
 #include <stdexcept>
 #include <vector>
-
-#include <opencv2/opencv.hpp>
+#include "mrcal_wrapper.h"
+#include <span>
 
 using namespace cv;
 
-extern "C" {
-// Seems to be missing C++ guards
-#include "mrcal.h"
-} // extern "C"
 
 #define BARF(args...) std::fprintf(stderr, ##args)
 
@@ -31,14 +27,14 @@ bool lensmodel_one_validate_args(mrcal_lensmodel_t *mrcal_lensmodel,
                                  std::vector<double> intrinsics,
                                  bool do_check_layout);
 
-int mrcal_main(
+mrcal_result mrcal_main(
     // List, depth is ordered array observation[N frames, object_height,
     // object_width] = [x,y, weight] weight<0 means ignored)
-    std::vector<mrcal_point3_t> observations_board,
+    std::span<mrcal_point3_t> observations_board,
     // RT transform from camera to object
-    std::vector<mrcal_pose_t> frames_rt_toref,
+    std::span<mrcal_pose_t> frames_rt_toref,
     // Chessboard size, in corners (not squares)
-    Size calobjectSize,
+    Size calobjectSize, double calibration_object_spacing,
     // res, pixels
     Size cameraRes) {
   // Number of board observations we've got. List of boards. in python, it's
@@ -54,7 +50,6 @@ int mrcal_main(
       calobjectSize.width; // Object width, in # of corners
   int calibration_object_height_n =
       calobjectSize.height;                   // Object height, in # of corners
-  double calibration_object_spacing = 0.0254; // square size, in
 
   // TODO set sizes and populate
   int imagersize[] = {cameraRes.width, cameraRes.height};
@@ -143,7 +138,7 @@ int mrcal_main(
       NULL;
 
   if (!lensmodel_one_validate_args(&mrcal_lensmodel, intrinsics, false))
-    return false;
+    return {.success=false};
 
   mrcal_problem_selections_t problem_selections = construct_problem_selections(
       do_optimize_intrinsics_core, do_optimize_intrinsics_distortions,
@@ -228,7 +223,8 @@ int mrcal_main(
     std::printf("%f ", i);
   std::printf("\n");
 
-  return 0;
+  mrcal_result ret;
+  return ret; // TODO
 }
 
 // lifted from mrcal-pywrap.c
@@ -410,7 +406,7 @@ int homography_test() {
     }
   }
 
-  return mrcal_main(observations_board, frames_rt_toref, boardSize, imagerSize);
+  return mrcal_main(observations_board, frames_rt_toref, boardSize, 0.0254, imagerSize).success;
 }
 
 int main() {
