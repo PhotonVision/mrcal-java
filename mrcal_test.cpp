@@ -42,7 +42,6 @@ int homography_test() {
     return -1;
 
   std::map<std::string, std::vector<mrcal_point3_t>> points;
-  int i_record = 0;
   vnlog_parser_result_t result;
   while (VNL_OK == (result = vnlog_parser_read_record(&ctx, fp))) {
     const char *const *name = vnlog_parser_record_from_key(&ctx, "filename");
@@ -70,7 +69,7 @@ int homography_test() {
       }
       points[*name].push_back(mrcal_point3_t{stod(*x), stod(*y), weight});
       // std::printf("put %s\n", *name);
-    } catch (std::exception e) {
+    } catch (std::exception const& e) {
     }
   }
 
@@ -96,10 +95,8 @@ int homography_test() {
     }
   }
 
-  printf("hi 1!\n");
   auto cal_result = mrcal_main(observations_board, frames_rt_toref, boardSize, 0.0254,
                     imagerSize);
-  printf("hi 898!\n");
   return true;
 }
 

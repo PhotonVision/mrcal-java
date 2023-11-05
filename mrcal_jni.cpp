@@ -130,7 +130,7 @@ Java_MrCalJNI_mrcal_1calibrate_1camera
       }
   }
 
-  auto calibration_result =
+  auto stats =
       mrcal_main(observations, total_frames_rt_toref, boardSize,
                  static_cast<double>(boardSpacing), imagerSize);
 
@@ -141,8 +141,17 @@ Java_MrCalJNI_mrcal_1calibrate_1camera
     return nullptr;
   }
 
+  size_t Nintrinsics = stats.intrinsics.size();
+  jdouble intrinsics_arr[Nintrinsics] = {0};
+  jdoubleArray intrinsics = MakeJDoubleArray(env, intrinsics_arr, sizeof(intrinsics_arr));
+  size_t Nresid = stats.residuals.size();
+  jdouble resid_arr[Nresid] = {0};
+  jdoubleArray residuals = MakeJDoubleArray(env, resid_arr, sizeof(resid_arr));
+  jboolean success = stats.success;
+  jdouble rms_err = stats.rms_error;
+
   // Actually call the constructor (TODO)
-  auto ret = env->NewObject(detectionClass, constructor, (jint)1234);
+  auto ret = env->NewObject(detectionClass, constructor, success, intrinsics, rms_err, residuals);
 
   return ret;
 }

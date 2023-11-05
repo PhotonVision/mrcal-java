@@ -8,6 +8,11 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set (WITH_ASAN OFF)
+
+if (WITH_ASAN)
+    add_compile_options(-fsanitize=address -g -Wall -fsanitize=undefined)
+endif ()
 
 # # Grab mrcal
 # include(FetchContent)
@@ -69,5 +74,6 @@ target_link_libraries(mrcal_jni_test PRIVATE
     /home/matt/github/vnlog/libvnlog.so
 )
 
-add_compile_options(mrcal_jni -fsanitize=address -g -Wall)
-add_link_options(mrcal_jni -fsanitize=address -static-libasan -g -Wall)
+if (WITH_ASAN)
+    target_link_libraries(mrcal_jni_test PRIVATE -fsanitize=address -fsanitize=undefined)
+endif ()

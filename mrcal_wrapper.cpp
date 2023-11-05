@@ -16,15 +16,21 @@ using namespace cv;
 
 // forward declarations for functions borrowed from mrcal-pywrap
 static mrcal_problem_selections_t construct_problem_selections(
-    bool do_optimize_intrinsics_core, bool do_optimize_intrinsics_distortions,
-    bool do_optimize_extrinsics, bool do_optimize_frames,
-    bool do_optimize_calobject_warp, bool do_apply_regularization,
-    bool do_apply_outlier_rejection, bool Ncameras_intrinsics,
-    bool Ncameras_extrinsics, bool Nframes, bool Nobservations_board);
+    int do_optimize_intrinsics_core, int do_optimize_intrinsics_distortions,
+    int do_optimize_extrinsics, int do_optimize_frames,
+    int do_optimize_calobject_warp, int do_apply_regularization,
+    int do_apply_outlier_rejection, int Ncameras_intrinsics,
+    int Ncameras_extrinsics, int Nframes, int Nobservations_board);
 
 bool lensmodel_one_validate_args(mrcal_lensmodel_t *mrcal_lensmodel,
                                  std::vector<double> intrinsics,
                                  bool do_check_layout);
+
+
+// Empty vector just to pass in so it's not NULL?
+mrcal_point3_t observations_point[0];
+mrcal_pose_t extrinsics_rt_fromref[0]; // Always zero for single camera, it seems?
+mrcal_point3_t points[0];     // Seems to always to be None for single camera?
 
 mrcal_result mrcal_main(
     // List, depth is ordered array observation[N frames, object_height,
@@ -55,7 +61,7 @@ mrcal_result mrcal_main(
 
   mrcal_calobject_warp_t calobject_warp = {0, 0};
 
-  int Nobservations_point_triangulated = 0; // no clue what this is
+  // int Nobservations_point_triangulated = 0; // no clue what this is
 
   int Npoints = 0;       // seems like this is also unused? whack
   int Npoints_fixed = 0; // seems like this is also unused? whack
@@ -88,9 +94,6 @@ mrcal_result mrcal_main(
         {static_cast<double>(i), 0, -1});
   }
 
-  // Empty vector just to pass in so it's not NULL?
-  mrcal_point3_t observations_point[0];
-
   // Pool is the raw observation backing array
   mrcal_point3_t *c_observations_board_pool = (observations_board.data());
   mrcal_point3_t *c_observations_point_pool = observations_point;
@@ -98,7 +101,8 @@ mrcal_result mrcal_main(
   // Copy from board/point pool above, using some code borrowed from
   // mrcal-pywrap
   mrcal_observation_board_t c_observations_board[Nobservations_board];
-  mrcal_observation_point_t c_observations_point[Nobservations_point];
+  // Try to make sure we don't accidentally make a zero-length array or something stupid
+  mrcal_observation_point_t c_observations_point[std::min(Nobservations_point, 1)];
 
   for (int i_observation = 0; i_observation < Nobservations_board;
        i_observation++) {
@@ -113,7 +117,7 @@ mrcal_result mrcal_main(
     c_observations_board[i_observation].icam.extrinsics = icam_extrinsics;
     c_observations_board[i_observation].iframe = iframe;
   }
-  for (int i_observation = 0; i_observation < Nobservations_board;
+  for (int i_observation = 0; i_observation < Nobservations_point;
        i_observation++) {
     int32_t i_point =
         indices_frame_camintrinsics_camextrinsics.at(i_observation).x;
@@ -127,9 +131,6 @@ mrcal_result mrcal_main(
     c_observations_point[i_observation].i_point = i_point;
   }
 
-  mrcal_pose_t
-      extrinsics_rt_fromref[0]; // Always zero for single camera, it seems?
-  mrcal_point3_t points[0];     // Seems to always to be None for single camera?
   int Ncameras_extrinsics = 0;  // Seems to always be zero for single camera
   int Nframes =
       frames_rt_toref.size(); // Number of pictures of the object we've got
@@ -207,8 +208,6 @@ mrcal_result mrcal_main(
   //   std::max(max_error, std::max(error_pixels.x, error_pixels.y));
   // }
 
-  printf("hi 2!\n");
-
   std::printf("\n===============================\n\n");
   std::printf("RMS Reprojection Error: %.2f pixels\n",
               stats.rms_reproj_error__pixels);
@@ -224,27 +223,24 @@ mrcal_result mrcal_main(
     std::printf("%f ", i);
   std::printf("\n");
 
-  printf("hi 3!\n");
-
   mrcal_result ret {
     .success = true,
     .intrinsics = intrinsics,
     .rms_error = stats.rms_reproj_error__pixels,
     .residuals = {c_x_final, c_x_final + Nmeasurements},
   };
-  printf("hi 4!\n");
-  return ret; // TODO
+  return ret;
 }
 
 // lifted from mrcal-pywrap.c
 static mrcal_problem_selections_t construct_problem_selections(
-    bool do_optimize_intrinsics_core, bool do_optimize_intrinsics_distortions,
-    bool do_optimize_extrinsics, bool do_optimize_frames,
-    bool do_optimize_calobject_warp, bool do_apply_regularization,
-    bool do_apply_outlier_rejection,
+    int do_optimize_intrinsics_core, int do_optimize_intrinsics_distortions,
+    int do_optimize_extrinsics, int do_optimize_frames,
+    int do_optimize_calobject_warp, int do_apply_regularization,
+    int do_apply_outlier_rejection,
 
-    bool Ncameras_intrinsics, bool Ncameras_extrinsics, bool Nframes,
-    bool Nobservations_board) {
+    int Ncameras_intrinsics, int Ncameras_extrinsics, int Nframes,
+    int Nobservations_board) {
   // By default we optimize everything we can
   if (do_optimize_intrinsics_core < 0)
     do_optimize_intrinsics_core = Ncameras_intrinsics > 0;
@@ -256,14 +252,14 @@ static mrcal_problem_selections_t construct_problem_selections(
     do_optimize_frames = Nframes > 0;
   if (do_optimize_calobject_warp < 0)
     do_optimize_calobject_warp = Nobservations_board > 0;
-  return {.do_optimize_intrinsics_core = do_optimize_intrinsics_core,
+  return {.do_optimize_intrinsics_core = (bool)do_optimize_intrinsics_core,
           .do_optimize_intrinsics_distortions =
-              do_optimize_intrinsics_distortions,
-          .do_optimize_extrinsics = do_optimize_extrinsics,
-          .do_optimize_frames = do_optimize_frames,
-          .do_optimize_calobject_warp = do_optimize_calobject_warp,
-          .do_apply_regularization = do_apply_regularization,
-          .do_apply_outlier_rejection = do_apply_outlier_rejection,
+              (bool)do_optimize_intrinsics_distortions,
+          .do_optimize_extrinsics = (bool)do_optimize_extrinsics,
+          .do_optimize_frames = (bool)do_optimize_frames,
+          .do_optimize_calobject_warp = (bool)do_optimize_calobject_warp,
+          .do_apply_regularization = (bool)do_apply_regularization,
+          .do_apply_outlier_rejection = (bool)do_apply_outlier_rejection,
           .do_apply_regularization_unity_cam01 = false};
 }
 
