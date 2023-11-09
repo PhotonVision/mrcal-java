@@ -153,8 +153,8 @@ mrcal_result mrcal_main(
   int Ncameras_extrinsics = 0; // Seems to always be zero for single camera
   int Nframes =
       frames_rt_toref.size(); // Number of pictures of the object we've got
-  mrcal_observation_point_triangulated_t *observations_point_triangulated =
-      NULL;
+  // mrcal_observation_point_triangulated_t *observations_point_triangulated =
+  //     NULL;
 
   if (!lensmodel_one_validate_args(&mrcal_lensmodel, intrinsics, false))
     return {.success = false};
@@ -170,8 +170,9 @@ mrcal_result mrcal_main(
       Nobservations_board, problem_selections, &mrcal_lensmodel);
 
   int Nmeasurements = mrcal_num_measurements(
-      Nobservations_board, Nobservations_point, observations_point_triangulated,
-      0, // hard-coded to 0
+      Nobservations_board, Nobservations_point,
+      // observations_point_triangulated,
+      // 0, // hard-coded to 0
       calibration_object_width_n, calibration_object_height_n,
       Ncameras_intrinsics, Ncameras_extrinsics, Nframes, Npoints, Npoints_fixed,
       problem_selections, &mrcal_lensmodel);
@@ -203,10 +204,12 @@ mrcal_result mrcal_main(
       c_points, c_calobject_warp, Ncameras_intrinsics, Ncameras_extrinsics,
       Nframes, Npoints, Npoints_fixed, c_observations_board,
       c_observations_point, Nobservations_board, Nobservations_point,
-      observations_point_triangulated, 0, c_observations_board_pool,
-      c_observations_point_pool, &mrcal_lensmodel, c_imagersizes,
-      problem_selections, &problem_constants, calibration_object_spacing,
-      calibration_object_width_n, calibration_object_height_n, verbose, false);
+      // observations_point_triangulated, 0,
+      c_observations_board_pool,
+      // c_observations_point_pool,
+      &mrcal_lensmodel, c_imagersizes, problem_selections, &problem_constants,
+      calibration_object_spacing, calibration_object_width_n,
+      calibration_object_height_n, verbose, false);
 
   // Stat prints I copied from Python
   int total_points = calibration_object_width_n * calibration_object_height_n *
@@ -228,7 +231,7 @@ mrcal_result mrcal_main(
       .rms_error = stats.rms_reproj_error__pixels,
       .residuals = {c_x_final, c_x_final + Nmeasurements},
       .calobject_warp = calobject_warp,
-      .Noutliers_board = stats.Noutliers_board,
+      .Noutliers_board = stats.Noutliers,
   };
   return ret;
 }
@@ -253,18 +256,20 @@ static mrcal_problem_selections_t construct_problem_selections(
     do_optimize_frames = Nframes > 0;
   if (do_optimize_calobject_warp < 0)
     do_optimize_calobject_warp = Nobservations_board > 0;
-  return {.do_optimize_intrinsics_core =
-              static_cast<bool>(do_optimize_intrinsics_core),
-          .do_optimize_intrinsics_distortions =
-              static_cast<bool>(do_optimize_intrinsics_distortions),
-          .do_optimize_extrinsics = static_cast<bool>(do_optimize_extrinsics),
-          .do_optimize_frames = static_cast<bool>(do_optimize_frames),
-          .do_optimize_calobject_warp =
-              static_cast<bool>(do_optimize_calobject_warp),
-          .do_apply_regularization = static_cast<bool>(do_apply_regularization),
-          .do_apply_outlier_rejection =
-              static_cast<bool>(do_apply_outlier_rejection),
-          .do_apply_regularization_unity_cam01 = false};
+  return {
+      .do_optimize_intrinsics_core =
+          static_cast<bool>(do_optimize_intrinsics_core),
+      .do_optimize_intrinsics_distortions =
+          static_cast<bool>(do_optimize_intrinsics_distortions),
+      .do_optimize_extrinsics = static_cast<bool>(do_optimize_extrinsics),
+      .do_optimize_frames = static_cast<bool>(do_optimize_frames),
+      .do_optimize_calobject_warp =
+          static_cast<bool>(do_optimize_calobject_warp),
+      .do_apply_regularization = static_cast<bool>(do_apply_regularization),
+      .do_apply_outlier_rejection =
+          static_cast<bool>(do_apply_outlier_rejection),
+      // .do_apply_regularization_unity_cam01 = false
+  };
 }
 
 bool lensmodel_one_validate_args(mrcal_lensmodel_t *mrcal_lensmodel,

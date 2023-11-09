@@ -19,7 +19,7 @@
 
 extern "C" {
 // Seems to be missing C++ guards
-#include "mrcal.h"
+#include <mrcal/mrcal.h>
 
 } // extern "C"
 
@@ -33,7 +33,7 @@ public:
   double rms_error;
   std::vector<double> residuals;
   mrcal_calobject_warp_t calobject_warp;
-  size_t Noutliers_board;
+  int Noutliers_board;
   // TODO standard devs
 };
 
