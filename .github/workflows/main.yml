@@ -72,6 +72,7 @@ jobs:
         image_additional_mb: 2500
         bind_mount_repository: true
         commands: |
+          sudo bash -c "echo 'deb [trusted=yes] http://mrcal.secretsauce.net/packages/jammy/public/ jammy main' >> /etc/apt/sources.list"
           sudo apt update
           sudo apt install cmake default-jdk git gcc g++ libmrcal-dev mrbuild -y
           cmake -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DOPENCV_ARCH=linuxarm64
