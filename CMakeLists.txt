@@ -14,15 +14,16 @@ if (WITH_ASAN)
     add_compile_options(-fsanitize=address -g -Wall -fsanitize=undefined)
 endif ()
 
-# # Grab mrcal
-# include(FetchContent)
-# FetchContent_Declare(
-#   mrcal
-#   GIT_REPOSITORY https://github.com/dkogan/mrcal
-#   GIT_TAG b79b1d42f658ff5bdafe81bd2b0bacb4b5a62b86
-# )
-# FetchContent_MakeAvailable(mrcal)
-# SET(MRCAL_INCLUDE_DIR ${mrcal_SOURCE_DIR})
+# Grab vnlog
+include(FetchContent)
+FetchContent_Declare(
+  vnlog
+  GIT_REPOSITORY https://github.com/dkogan/vnlog
+  GIT_TAG HEAD
+  BUILD_COMMAND "make"
+)
+FetchContent_MakeAvailable(vnlog)
+SET(VNLOG_INCLUDE_DIR ${vnlog_SOURCE_DIR})
 
 # OpenCV
 set(OpenCV_STATIC ON)
@@ -62,12 +63,13 @@ SET_TARGET_PROPERTIES(mrcal_jni PROPERTIES LINK_FLAGS "-Wl,--version-script=\"${
 # Test script for checking our linker
 add_executable(mrcal_jni_test mrcal_test.cpp mrcal_wrapper.cpp)
 target_link_libraries(mrcal_jni_test PUBLIC mrcal_jni)
-#target_include_directories(mrcal_jni_test PRIVATE ../mrcal)
+target_include_directories(mrcal_jni_test PRIVATE ${VNLOG_INCLUDE_DIR})
 target_link_libraries(mrcal_jni_test PRIVATE
     ${OpenCV_LIBS}
     mrcal
     # /home/matt/github/mrcal/libmrcal.so
-    /home/matt/github/vnlog/libvnlog.so
+    # /home/matt/github/vnlog/libvnlog.so
+    ${vnlog_SOURCE_DIR}/libvnlog.so
 )
 
 if (WITH_ASAN)
