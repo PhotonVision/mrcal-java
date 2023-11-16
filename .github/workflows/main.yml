@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             arch-name: linuxx86-64
             lib-src: build/libmrcal_jni.so
             lib-dst: build/libmrcal_jni_linuxx86-64.so
@@ -37,7 +37,10 @@ jobs:
       uses: jwlawson/actions-setup-cmake@v1.13
 
     - name: Install deps
-      run: sudo apt-get install -y cmake gcc g++ libmrcal-dev mrbuild
+      run: |
+        sudo bash -c "echo 'deb [trusted=yes] http://mrcal.secretsauce.net/packages/jammy/public/ jammy main' >> /etc/apt/sources.list"
+        sudo apt update
+        sudo apt-get install -y cmake gcc g++ libmrcal-dev mrbuild
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
