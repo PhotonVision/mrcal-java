@@ -72,7 +72,7 @@ jobs:
           sudo apt update
           sudo apt install cmake default-jdk git gcc g++ libmrcal-dev mrbuild -y
           cmake -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DOPENCV_ARCH=linuxarm64
-          cmake --build build --config ${{env.BUILD_TYPE}} -j
+          cmake --build build --config ${{env.BUILD_TYPE}} -j --target mrcal_jni
           mv build/libmrcal_jni.so build/libmrcal_jni_aarch64.so
 
     - uses: actions/upload-artifact@v3
