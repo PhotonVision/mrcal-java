@@ -26,12 +26,18 @@ extern "C" {
 #include <span>
 #include <vector>
 
-class mrcal_result {
-public:
+struct MatSize {
+  int rows;
+  int cols;
+};
+
+struct mrcal_result {
   bool success;
   std::vector<double> intrinsics;
   double rms_error;
   std::vector<double> residuals;
+  std::vector<double> Jt;
+  MatSize jacobian_size;
   mrcal_calobject_warp_t calobject_warp;
   int Noutliers_board;
   // TODO standard devs

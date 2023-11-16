@@ -19,6 +19,8 @@
 
 #include <malloc.h>
 #include <stdint.h>
+#include <suitesparse/SuiteSparse_config.h>
+#include <suitesparse/cholmod_core.h>
 
 #include <algorithm>
 #include <chrono>
@@ -180,7 +182,7 @@ mrcal_result mrcal_main(
   // OK, now we should have everything ready! Just some final setup and then
   // call optimize
 
-  // Outputs
+  // Residuals
   double c_b_packed_final[Nstate];
   double c_x_final[Nmeasurements];
 
@@ -199,38 +201,64 @@ mrcal_result mrcal_main(
   int verbose = 0;
 
   auto stats = mrcal_optimize(
-      c_b_packed_final, Nstate * sizeof(double), c_x_final,
-      Nmeasurements * sizeof(double), c_intrinsics, c_extrinsics, c_frames,
-      c_points, c_calobject_warp, Ncameras_intrinsics, Ncameras_extrinsics,
-      Nframes, Npoints, Npoints_fixed, c_observations_board,
-      c_observations_point, Nobservations_board, Nobservations_point,
-      // observations_point_triangulated, 0,
-      c_observations_board_pool,
-      // c_observations_point_pool,
-      &mrcal_lensmodel, c_imagersizes, problem_selections, &problem_constants,
+      NULL, -1, c_x_final, Nmeasurements * sizeof(double), c_intrinsics,
+      c_extrinsics, c_frames, c_points, c_calobject_warp, Ncameras_intrinsics,
+      Ncameras_extrinsics, Nframes, Npoints, Npoints_fixed,
+      c_observations_board, c_observations_point, Nobservations_board,
+      Nobservations_point, c_observations_board_pool, &mrcal_lensmodel,
+      c_imagersizes, problem_selections, &problem_constants,
       calibration_object_spacing, calibration_object_width_n,
       calibration_object_height_n, verbose, false);
 
-  // Stat prints I copied from Python
-  // int total_points = calibration_object_width_n * calibration_object_height_n
-  // *
-  //                    Nobservations_board;
-  // Measurements=corner locations, in pixels. Recall the shape is (num
-  // pictures) * (rows x cols in chessboard) * (x, y)
+  // and for fun, evaluate the jacobian
+  int N_j_nonzero = _mrcal_num_j_nonzero(
+      Nobservations_board, Nobservations_point, calibration_object_width_n,
+      calibration_object_height_n, Ncameras_intrinsics, Ncameras_extrinsics,
+      Nframes, Npoints, Npoints_fixed, c_observations_board,
+      c_observations_point, problem_selections, &mrcal_lensmodel);
+  cholmod_sparse Jt = {.nrow = static_cast<size_t>(Nstate),
+                       .ncol = static_cast<size_t>(Nmeasurements),
+                       .nzmax = static_cast<size_t>(N_j_nonzero),
+                       .stype = 0,
+                       .itype = CHOLMOD_INT,
+                       .xtype = CHOLMOD_REAL,
+                       .dtype = CHOLMOD_DOUBLE,
+                       .sorted = 1,
+                       .packed = 1};
 
-  // double max_error = *std::max_element(c_x_final, c_x_final + Nmeasurements);
+  std::vector<int32_t> P, I;
+  std::vector<double> X;
+  {
+    P.reserve(Nmeasurements + 1);
+    I.reserve(N_j_nonzero);
+    X.reserve(N_j_nonzero);
 
-  // for (int i = 0; i < sizeof(c_x_final); i+= 2) {
-  //   mrcal_point2_t &error_pixels =
-  //   *reinterpret_cast<mrcal_point2_t*>(c_x_final + i); max_error =
-  //   std::max(max_error, std::max(error_pixels.x, error_pixels.y));
-  // }
+    Jt.p = P.data();
+    Jt.i = I.data();
+    Jt.x = X.data();
+  }
+  std::printf("Getting jacobian\n");
+  if (!mrcal_optimizer_callback(
+          c_b_packed_final, Nstate * sizeof(double), c_x_final,
+          Nmeasurements * sizeof(double), &Jt, c_intrinsics, c_extrinsics,
+          c_frames, c_points, c_calobject_warp, Ncameras_intrinsics,
+          Ncameras_extrinsics, Nframes, Npoints, Npoints_fixed,
+          c_observations_board, c_observations_point, Nobservations_board,
+          Nobservations_point, c_observations_board_pool, &mrcal_lensmodel,
+          c_imagersizes, problem_selections, &problem_constants,
+          calibration_object_spacing, calibration_object_width_n,
+          calibration_object_height_n, verbose)) {
+    std::cerr << "callback failed!\n";
+  }
+  std::cout << "Jacobian! " << std::endl;
 
   mrcal_result ret{
       .success = true,
       .intrinsics = intrinsics,
       .rms_error = stats.rms_reproj_error__pixels,
       .residuals = {c_x_final, c_x_final + Nmeasurements},
+      .Jt = X,
+      .jacobian_size = {Nstate, Nmeasurements},
       .calobject_warp = calobject_warp,
       .Noutliers_board = stats.Noutliers,
   };

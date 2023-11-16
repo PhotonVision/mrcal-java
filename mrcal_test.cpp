@@ -44,13 +44,16 @@ struct cmpByFilename {
 };
 
 int homography_test() {
-  // Size boardSize = {7, 7};
-  // Size imagerSize = {640, 480};
+  Size boardSize = {7, 7};
+  Size imagerSize = {640, 480};
   // std::FILE *fp =
   //     std::fopen("/home/matt/github/photon_640_480/corners.vnl", "r");
-  Size boardSize = {10, 10};
-  Size imagerSize = {1600, 896};
-  std::FILE *fp = std::fopen("/home/matt/github/c920_cal/corners.vnl", "r");
+  // Size boardSize = {10, 10};
+  // Size imagerSize = {1600, 896};
+  std::FILE *fp =
+      std::fopen("/home/matt/Documents/GitHub/photonvision/test-resources/"
+                 "calibrationSquaresImg/piCam/640_480_1/corners.vnl",
+                 "r");
 
   if (fp == NULL)
     return -1;
@@ -147,7 +150,7 @@ int homography_test() {
 }
 
 int main() {
-  // homography_test();
-  Java_org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate_1camera(
-      nullptr, {}, 0, 0, 0, 0, 0, 0, 0);
+  homography_test();
+  // Java_org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate_1camera(
+  //     nullptr, {}, 0, 0, 0, 0, 0, 0, 0);
 }

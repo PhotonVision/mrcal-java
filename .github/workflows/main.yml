@@ -40,7 +40,7 @@ jobs:
       run: |
         sudo bash -c "echo 'deb [trusted=yes] http://mrcal.secretsauce.net/packages/jammy/public/ jammy main' >> /etc/apt/sources.list"
         sudo apt update
-        sudo apt-get install -y cmake gcc g++ libmrcal-dev mrbuild
+        sudo apt-get install -y cmake gcc g++ libmrcal-dev mrbuild libsuitesparse-dev
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
@@ -74,7 +74,7 @@ jobs:
         commands: |
           sudo bash -c "echo 'deb [trusted=yes] http://mrcal.secretsauce.net/packages/jammy/public/ jammy main' >> /etc/apt/sources.list"
           sudo apt update
-          sudo apt install cmake default-jdk git gcc g++ libmrcal-dev mrbuild -y
+          sudo apt install cmake default-jdk git gcc g++ libmrcal-dev mrbuild libsuitesparse-dev -y
           cmake -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DOPENCV_ARCH=linuxarm64
           cmake --build build --config ${{env.BUILD_TYPE}} -j --target mrcal_jni
           mv build/libmrcal_jni.so build/libmrcal_jni_aarch64.so
