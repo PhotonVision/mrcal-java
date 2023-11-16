@@ -113,7 +113,7 @@ mrcal_result mrcal_main(
 
   // Pool is the raw observation backing array
   mrcal_point3_t *c_observations_board_pool = (observations_board.data());
-  mrcal_point3_t *c_observations_point_pool = observations_point;
+  // mrcal_point3_t *c_observations_point_pool = observations_point;
 
   // Copy from board/point pool above, using some code borrowed from
   // mrcal-pywrap
@@ -212,12 +212,13 @@ mrcal_result mrcal_main(
       calibration_object_height_n, verbose, false);
 
   // Stat prints I copied from Python
-  int total_points = calibration_object_width_n * calibration_object_height_n *
-                     Nobservations_board;
+  // int total_points = calibration_object_width_n * calibration_object_height_n
+  // *
+  //                    Nobservations_board;
   // Measurements=corner locations, in pixels. Recall the shape is (num
   // pictures) * (rows x cols in chessboard) * (x, y)
 
-  double max_error = *std::max_element(c_x_final, c_x_final + Nmeasurements);
+  // double max_error = *std::max_element(c_x_final, c_x_final + Nmeasurements);
 
   // for (int i = 0; i < sizeof(c_x_final); i+= 2) {
   //   mrcal_point2_t &error_pixels =
