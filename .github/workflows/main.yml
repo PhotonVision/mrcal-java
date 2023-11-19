@@ -56,7 +56,7 @@ jobs:
 
     - uses: actions/upload-artifact@master
       with:
-        name: libmrgingham-${{ matrix.arch-name }}
+        name: libmrcal-jni-${{ matrix.arch-name }}
         path: |
           ${{ matrix.lib-dst }}
 
@@ -82,8 +82,8 @@ jobs:
     - uses: actions/upload-artifact@v3
       name: Upload shared library
       with:
-        name: libmrgingham-pi
-        path: build/libmrgingham_aarch64.so
+        name: libmrcal-jni-pi
+        path: build/libmrcal_jni_aarch64.so
 
 
 

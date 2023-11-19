@@ -108,7 +108,6 @@ target_include_directories(mrcal_jni_test PRIVATE ${VNLOG_INCLUDE_DIR})
 add_dependencies(mrcal_jni_test vnlog)
 target_link_libraries(mrcal_jni_test PRIVATE
     ${OpenCV_LIBS}
-    mrcal
     libvnlog
 )
 
