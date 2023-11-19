@@ -95,6 +95,7 @@ int homography_test() {
   }
 
   vnlog_parser_free(&ctx);
+  std::fclose(fp);
 
   auto start = std::chrono::steady_clock::now();
 
@@ -108,8 +109,10 @@ int homography_test() {
   for (const auto &[key, value] : points) {
     if (value.size()) {
       auto ret = getSeedPose(value.data(), boardSize, imagerSize, 0.0254, 800);
-      std::printf("Seed pose %s: r %f %f %f t %f %f %f\n", key.c_str(), ret.r.x,
-                  ret.r.y, ret.r.z, ret.t.x, ret.t.y, ret.t.z);
+
+      if (0)
+        std::printf("Seed pose %s: r %f %f %f t %f %f %f\n", key.c_str(),
+                    ret.r.x, ret.r.y, ret.r.z, ret.t.x, ret.t.y, ret.t.z);
 
       // Append to the Big List of board corners/levels
       observations_board.insert(observations_board.end(), value.begin(),
@@ -127,30 +130,35 @@ int homography_test() {
   auto dt = std::chrono::steady_clock::now() - start;
   int dt_ms = dt.count();
 
-  auto &stats = cal_result;
+  auto &stats = *cal_result;
 
   double max_error =
       *std::max_element(stats.residuals.begin(), stats.residuals.end());
 
-  std::printf("\n===============================\n\n");
-  std::printf("RMS Reprojection Error: %.2f pixels\n", stats.rms_error);
-  std::printf("Worst residual (by measurement): %.1f pixels\n", max_error);
-  std::printf("Noutliers: %i of %lu (%.1f percent of the data)\n",
-              stats.Noutliers_board, total_points,
-              100.0 * stats.Noutliers_board / total_points);
-  std::printf("calobject_warp: [%f, %f]\n", stats.calobject_warp.x2,
-              stats.calobject_warp.y2);
-  std::printf("dt, seeding + solve: %f ms\n", dt_ms / 1e6);
-  std::printf("Intrinsics [%lu]:\n", stats.intrinsics.size());
-  for (auto i : stats.intrinsics)
-    std::printf("%f ", i);
-  std::printf("\n");
+  if (0) {
+
+    std::printf("\n===============================\n\n");
+    std::printf("RMS Reprojection Error: %.2f pixels\n", stats.rms_error);
+    std::printf("Worst residual (by measurement): %.1f pixels\n", max_error);
+    std::printf("Noutliers: %i of %lu (%.1f percent of the data)\n",
+                stats.Noutliers_board, total_points,
+                100.0 * stats.Noutliers_board / total_points);
+    std::printf("calobject_warp: [%f, %f]\n", stats.calobject_warp.x2,
+                stats.calobject_warp.y2);
+    std::printf("dt, seeding + solve: %f ms\n", dt_ms / 1e6);
+    std::printf("Intrinsics [%lu]:\n", stats.intrinsics.size());
+    for (auto i : stats.intrinsics)
+      std::printf("%f ", i);
+    std::printf("\n");
+  }
+
 
   return true;
 }
 
 int main() {
-  homography_test();
-  // Java_org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate_1camera(
-  //     nullptr, {}, 0, 0, 0, 0, 0, 0, 0);
+  // for (int i = 0; i < 1e6; i++) {
+    homography_test();
+  // }
+
 }

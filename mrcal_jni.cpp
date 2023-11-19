@@ -163,8 +163,9 @@ Java_org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate_1camera
     }
   }
 
-  auto stats = mrcal_main(observations, total_frames_rt_toref, boardSize,
-                          static_cast<double>(boardSpacing), imagerSize);
+  auto statsptr = mrcal_main(observations, total_frames_rt_toref, boardSize,
+                             static_cast<double>(boardSpacing), imagerSize);
+  mrcal_result &stats = *statsptr;
 
   // Find the constructor. Reference:
   // https://www.microfocus.com/documentation/extend-acucobol/925/BKITITJAVAS027.html

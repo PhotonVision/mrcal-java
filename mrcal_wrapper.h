@@ -23,33 +23,45 @@ extern "C" {
 
 } // extern "C"
 
+// Seems like these people don't properly extern-c their headers either
+extern "C" {
+#include <suitesparse/SuiteSparse_config.h>
+#include <suitesparse/cholmod_core.h>
+} // extern "C"
+
+#include <opencv2/opencv.hpp>
 #include <span>
 #include <vector>
-
-struct MatSize {
-  int rows;
-  int cols;
-};
+#include <utility>
+#include <memory>
 
 struct mrcal_result {
   bool success;
   std::vector<double> intrinsics;
   double rms_error;
   std::vector<double> residuals;
-  std::vector<double> Jt;
-  MatSize jacobian_size;
+  cholmod_sparse* Jt;
   mrcal_calobject_warp_t calobject_warp;
   int Noutliers_board;
   // TODO standard devs
-};
 
-#include <opencv2/opencv.hpp>
+  mrcal_result() = default;
+  mrcal_result(bool success_, std::vector<double> intrinsics_,
+               double rms_error_, std::vector<double> residuals_,
+               cholmod_sparse* Jt_, mrcal_calobject_warp_t calobject_warp_,
+               int Noutliers_board_)
+      : success{success_}, intrinsics{std::move(intrinsics_)},
+        rms_error{rms_error_}, residuals{std::move(residuals_)}, Jt{Jt_},
+        calobject_warp{calobject_warp_}, Noutliers_board{Noutliers_board_} {}
+  mrcal_result(mrcal_result &&) = delete;
+  ~mrcal_result();
+};
 
 mrcal_pose_t getSeedPose(const mrcal_point3_t *c_observations_board_pool,
                          cv::Size boardSize, cv::Size imagerSize,
                          double squareSize, double focal_len_guess);
 
-mrcal_result mrcal_main(
+std::unique_ptr<mrcal_result> mrcal_main(
     // List, depth is ordered array observation[N frames, object_height,
     // object_width] = [x,y, weight] weight<0 means ignored)
     std::span<mrcal_point3_t> observations_board,

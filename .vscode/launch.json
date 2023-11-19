@@ -17,7 +17,7 @@
       "request": "launch",
       "program": "${workspaceFolder}/build/mrcal_jni_test",
       "args": [],
-      "stopAtEntry": true,
+      "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],
       "externalConsole": false,

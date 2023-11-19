@@ -63,6 +63,10 @@
         "cinttypes": "cpp",
         "typeinfo": "cpp",
         "optional": "cpp",
-        "span": "cpp"
-    }
+        "span": "cpp",
+        "unordered_set": "cpp",
+        "future": "cpp",
+        "typeindex": "cpp"
+    },
+    "cmake.configureOnOpen": false
 }

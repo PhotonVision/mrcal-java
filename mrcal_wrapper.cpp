@@ -19,8 +19,6 @@
 
 #include <malloc.h>
 #include <stdint.h>
-#include <suitesparse/SuiteSparse_config.h>
-#include <suitesparse/cholmod_core.h>
 
 #include <algorithm>
 #include <chrono>
@@ -30,6 +28,18 @@
 #include <vector>
 
 using namespace cv;
+
+class CholmodCtx {
+public:
+  cholmod_common Common, *cc;
+  CholmodCtx() {
+    cc = &Common;
+    cholmod_l_start(cc);
+  }
+
+  ~CholmodCtx() { cholmod_l_finish(cc); }
+};
+static CholmodCtx cctx;
 
 #define BARF(args...) std::fprintf(stderr, ##args)
 
@@ -51,7 +61,7 @@ mrcal_pose_t
     extrinsics_rt_fromref[0]; // Always zero for single camera, it seems?
 mrcal_point3_t points[0];     // Seems to always to be None for single camera?
 
-mrcal_result mrcal_main(
+std::unique_ptr<mrcal_result> mrcal_main(
     // List, depth is ordered array observation[N frames, object_height,
     // object_width] = [x,y, weight] weight<0 means ignored)
     std::span<mrcal_point3_t> observations_board,
@@ -123,7 +133,7 @@ mrcal_result mrcal_main(
   // Try to make sure we don't accidentally make a zero-length array or
   // something stupid
   mrcal_observation_point_t
-      c_observations_point[std::min(Nobservations_point, 1)];
+      c_observations_point[std::max(Nobservations_point, 1)];
 
   for (int i_observation = 0; i_observation < Nobservations_board;
        i_observation++) {
@@ -158,8 +168,11 @@ mrcal_result mrcal_main(
   // mrcal_observation_point_triangulated_t *observations_point_triangulated =
   //     NULL;
 
-  if (!lensmodel_one_validate_args(&mrcal_lensmodel, intrinsics, false))
-    return {.success = false};
+  if (!lensmodel_one_validate_args(&mrcal_lensmodel, intrinsics, false)) {
+    auto ret = std::make_unique<mrcal_result>();
+    ret->success = false;
+    return ret;
+  }
 
   mrcal_problem_selections_t problem_selections = construct_problem_selections(
       do_optimize_intrinsics_core, do_optimize_intrinsics_distortions,
@@ -167,9 +180,9 @@ mrcal_result mrcal_main(
       do_apply_regularization, do_apply_outlier_rejection, Ncameras_intrinsics,
       Ncameras_extrinsics, Nframes, Nobservations_board);
 
-  int Nstate = mrcal_num_states(
-      Ncameras_intrinsics, Ncameras_extrinsics, Nframes, Npoints, Npoints_fixed,
-      Nobservations_board, problem_selections, &mrcal_lensmodel);
+  // int Nstate = mrcal_num_states(
+  //     Ncameras_intrinsics, Ncameras_extrinsics, Nframes, Npoints, Npoints_fixed,
+  //     Nobservations_board, problem_selections, &mrcal_lensmodel);
 
   int Nmeasurements = mrcal_num_measurements(
       Nobservations_board, Nobservations_point,
@@ -183,7 +196,7 @@ mrcal_result mrcal_main(
   // call optimize
 
   // Residuals
-  double c_b_packed_final[Nstate];
+  // double c_b_packed_final[Nstate];
   double c_x_final[Nmeasurements];
 
   // Seeds
@@ -211,58 +224,36 @@ mrcal_result mrcal_main(
       calibration_object_height_n, verbose, false);
 
   // and for fun, evaluate the jacobian
-  int N_j_nonzero = _mrcal_num_j_nonzero(
-      Nobservations_board, Nobservations_point, calibration_object_width_n,
-      calibration_object_height_n, Ncameras_intrinsics, Ncameras_extrinsics,
-      Nframes, Npoints, Npoints_fixed, c_observations_board,
-      c_observations_point, problem_selections, &mrcal_lensmodel);
-  cholmod_sparse Jt = {.nrow = static_cast<size_t>(Nstate),
-                       .ncol = static_cast<size_t>(Nmeasurements),
-                       .nzmax = static_cast<size_t>(N_j_nonzero),
-                       .stype = 0,
-                       .itype = CHOLMOD_INT,
-                       .xtype = CHOLMOD_REAL,
-                       .dtype = CHOLMOD_DOUBLE,
-                       .sorted = 1,
-                       .packed = 1};
+  cholmod_sparse* Jt = NULL;
+  // int N_j_nonzero = _mrcal_num_j_nonzero(
+  //     Nobservations_board, Nobservations_point, calibration_object_width_n,
+  //     calibration_object_height_n, Ncameras_intrinsics, Ncameras_extrinsics,
+  //     Nframes, Npoints, Npoints_fixed, c_observations_board,
+  //     c_observations_point, problem_selections, &mrcal_lensmodel);
 
-  std::vector<int32_t> P, I;
-  std::vector<double> X;
-  {
-    P.reserve(Nmeasurements + 1);
-    I.reserve(N_j_nonzero);
-    X.reserve(N_j_nonzero);
+  // cholmod_sparse* Jt = cholmod_l_allocate_sparse(
+  //     static_cast<size_t>(Nstate), static_cast<size_t>(Nmeasurements),
+  //     static_cast<size_t>(N_j_nonzero), 1, 1, 0, CHOLMOD_REAL, cctx.cc);
 
-    Jt.p = P.data();
-    Jt.i = I.data();
-    Jt.x = X.data();
-  }
-  std::printf("Getting jacobian\n");
-  if (!mrcal_optimizer_callback(
-          c_b_packed_final, Nstate * sizeof(double), c_x_final,
-          Nmeasurements * sizeof(double), &Jt, c_intrinsics, c_extrinsics,
-          c_frames, c_points, c_calobject_warp, Ncameras_intrinsics,
-          Ncameras_extrinsics, Nframes, Npoints, Npoints_fixed,
-          c_observations_board, c_observations_point, Nobservations_board,
-          Nobservations_point, c_observations_board_pool, &mrcal_lensmodel,
-          c_imagersizes, problem_selections, &problem_constants,
-          calibration_object_spacing, calibration_object_width_n,
-          calibration_object_height_n, verbose)) {
-    std::cerr << "callback failed!\n";
-  }
-  std::cout << "Jacobian! " << std::endl;
+  // // std::printf("Getting jacobian\n");
+  // if (!mrcal_optimizer_callback(
+  //         c_b_packed_final, Nstate * sizeof(double), c_x_final,
+  //         Nmeasurements * sizeof(double), Jt, c_intrinsics, c_extrinsics,
+  //         c_frames, c_points, c_calobject_warp, Ncameras_intrinsics,
+  //         Ncameras_extrinsics, Nframes, Npoints, Npoints_fixed,
+  //         c_observations_board, c_observations_point, Nobservations_board,
+  //         Nobservations_point, c_observations_board_pool, &mrcal_lensmodel,
+  //         c_imagersizes, problem_selections, &problem_constants,
+  //         calibration_object_spacing, calibration_object_width_n,
+  //         calibration_object_height_n, verbose)) {
+  //   std::cerr << "callback failed!\n";
+  // }
+  // std::cout << "Jacobian! " << std::endl;
 
-  mrcal_result ret{
-      .success = true,
-      .intrinsics = intrinsics,
-      .rms_error = stats.rms_reproj_error__pixels,
-      .residuals = {c_x_final, c_x_final + Nmeasurements},
-      .Jt = X,
-      .jacobian_size = {Nstate, Nmeasurements},
-      .calobject_warp = calobject_warp,
-      .Noutliers_board = stats.Noutliers,
-  };
-  return ret;
+  std::vector<double> residuals = {c_x_final, c_x_final + Nmeasurements};
+  return std::make_unique<mrcal_result>(
+      true, intrinsics, stats.rms_reproj_error__pixels, residuals, Jt,
+      calobject_warp, stats.Noutliers);
 }
 
 // lifted from mrcal-pywrap.c
@@ -359,4 +350,12 @@ mrcal_pose_t getSeedPose(const mrcal_point3_t *c_observations_board_pool,
 
   return mrcal_pose_t{.r = {.x = rvec(0), .y = rvec(1), .z = rvec(2)},
                       .t = {.x = tvec(0), .y = tvec(1), .z = tvec(2)}};
+}
+
+mrcal_result::~mrcal_result() {
+  cholmod_l_free_sparse(&Jt, cctx.cc);
+  // free(Jt.p);
+  // free(Jt.i);
+  // free(Jt.x);
+  return;
 }
