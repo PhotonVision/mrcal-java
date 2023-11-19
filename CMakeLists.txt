@@ -97,7 +97,7 @@ set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall -Werror -Wno-deprecated-enum-enum
 # Create shared library
 add_library(mrcal_jni SHARED ${INCLUDE_HPP} ${SRC_HPP} ${SRC_CPP})
 target_include_directories(mrcal_jni PUBLIC ${JNI_INCLUDE_DIRS} ${OPENCV_INCLUDE_PATH})
-target_link_libraries(mrcal_jni ${OPENCV_LIB_PATH} mrcal)
+target_link_libraries(mrcal_jni ${OPENCV_LIB_PATH} mrcal cholmod suitesparseconfig)
 
 SET_TARGET_PROPERTIES(mrcal_jni PROPERTIES LINK_FLAGS "-Wl,--version-script=\"${CMAKE_CURRENT_SOURCE_DIR}/linux/exports.txt\"")
 
