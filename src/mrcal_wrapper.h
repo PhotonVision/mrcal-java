@@ -19,7 +19,7 @@
 
 extern "C" {
 // Seems to be missing C++ guards
-#include <mrcal/mrcal.h>
+#include <mrcal.h>
 
 } // extern "C"
 

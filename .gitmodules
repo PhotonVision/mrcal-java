@@ -1,0 +1,9 @@
+[submodule "libdogleg"]
+	path = libdogleg
+	url = https://github.com/dkogan/libdogleg/
+[submodule "mrcal"]
+	path = mrcal
+	url = https://github.com/dkogan/mrcal
+[submodule "vcpkg"]
+	path = vcpkg
+	url = https://github.com/microsoft/vcpkg

@@ -14,27 +14,9 @@ if (WITH_ASAN)
     add_compile_options(-fsanitize=address -g -Wall -fsanitize=undefined)
 endif ()
 
-# Grab vnlog
-include(ExternalProject)
-find_program(MAKE_EXECUTABLE NAMES gmake make mingw32-make REQUIRED)
-ExternalProject_add(
-  vnlog
-  GIT_REPOSITORY https://github.com/dkogan/vnlog
-  GIT_TAG HEAD
-  UPDATE_DISCONNECTED true
-  CONFIGURE_COMMAND ""
-  BUILD_COMMAND ${MAKE_EXECUTABLE} <SOURCE_DIR>
-  INSTALL_COMMAND ""
-  UPDATE_COMMAND ""
-  #BUILD_BYPRODUCTS <SOURCE_DIR>/libvnlog.so
-)
-#FetchContent_MakeAvailable(vnlog)
-ExternalProject_Get_property(vnlog SOURCE_DIR)
-SET(VNLOG_INCLUDE_DIR ${SOURCE_DIR})
-# message(STATUS MAKE IS ${MAKE_EXECUTABLE})
 
-add_library(libvnlog SHARED IMPORTED)
-set_target_properties(libvnlog PROPERTIES IMPORTED_LOCATION ${SOURCE_DIR}/libvnlog.so)
+# add_library(libvnlog SHARED IMPORTED)
+# set_target_properties(libvnlog PROPERTIES IMPORTED_LOCATION ${SOURCE_DIR}/libvnlog.so)
 
 
 find_package(JNI)
@@ -45,10 +27,11 @@ if (JNI_FOUND)
 endif()
 
 
-set(OPENCV_YEAR "frc2023")
-set(OPENCV_VERSION "4.6.0-5")
+set(OPENCV_YEAR "frc2024")
+set(OPENCV_VERSION "4.8.0-2")
+# also valid: windowsx86-64
 if(NOT OPENCV_ARCH)
-    set(OPENCV_ARCH "linuxx86-64") # Set by Actions usually
+    set(OPENCV_ARCH "windowsx86-64") # Set by Actions usually
 endif()
 
 # type can be "", "debug", "static", or "staticdebug"
@@ -71,7 +54,7 @@ FetchContent_MakeAvailable(opencv_header)
 
 # This probably doesn't work great with shared libraries, but I don't care about those right now
 file(GLOB_RECURSE OPENCV_LIB_PATH
-  "${opencv_lib_SOURCE_DIR}/**/*"
+  "${opencv_lib_SOURCE_DIR}/**/*.lib"
 )
 SET(OPENCV_INCLUDE_PATH ${opencv_header_SOURCE_DIR})
 
@@ -86,29 +69,51 @@ set(
 )
 set(
     SRC_CPP
-    mrcal_jni.h
-    mrcal_wrapper.cpp
-    mrcal_jni.cpp
+    src/mrcal_jni.h
+    src/mrcal_wrapper.cpp
+    src/mrcal_jni.cpp
+    libdogleg/dogleg.c
+    mrcal/mrcal.c mrcal/cahvore.cc mrcal/poseutils-opencv.c mrcal/poseutils-uses-autodiff.cc mrcal/poseutils.c mrcal/mrcal-opencv.c 
 )
 
+
 # ignore opencv spam
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall -Werror -Wno-deprecated-enum-enum-conversion")
+# set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall -Werror -Wno-deprecated-enum-enum-conversion")
+
+
+# Gennerate minimath
+find_package( Perl REQUIRED )
+add_custom_target(
+ generate_minimath ALL
+ COMMAND ${PERL_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/mrcal/minimath/minimath_generate.pl > ${CMAKE_CURRENT_SOURCE_DIR}/mrcal/minimath/minimath_generated.h
+ WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+ BYPRODUCTS ${CMAKE_CURRENT_SOURCE_DIR}/mrcal/minimath/minimath_generated.h
+ COMMENT "Generating minimath"
+)
+
 
 # Create shared library
 add_library(mrcal_jni SHARED ${INCLUDE_HPP} ${SRC_HPP} ${SRC_CPP})
-target_include_directories(mrcal_jni PUBLIC ${JNI_INCLUDE_DIRS} ${OPENCV_INCLUDE_PATH})
-target_link_libraries(mrcal_jni ${OPENCV_LIB_PATH} mrcal cholmod suitesparseconfig)
+target_include_directories(mrcal_jni PUBLIC ${JNI_INCLUDE_DIRS} ${OPENCV_INCLUDE_PATH} mrcal libdogleg)
+add_dependencies(mrcal_jni generate_minimath)
+
+IF (WIN32)
+    find_package(SuiteSparse CONFIG REQUIRED)
+    target_link_libraries(mrcal_jni ${OPENCV_LIB_PATH} SuiteSparse::amd SuiteSparse::cholmod)
+ELSE()
+    target_link_libraries(mrcal_jni ${OPENCV_LIB_PATH} suitesparseconfig)
+ENDIF()
 
 SET_TARGET_PROPERTIES(mrcal_jni PROPERTIES LINK_FLAGS "-Wl,--version-script=\"${CMAKE_CURRENT_SOURCE_DIR}/linux/exports.txt\"")
 
 # Test script for checking our linker
-add_executable(mrcal_jni_test mrcal_test.cpp mrcal_wrapper.cpp)
+add_executable(mrcal_jni_test src/mrcal_test.cpp)
 target_link_libraries(mrcal_jni_test PUBLIC mrcal_jni)
-target_include_directories(mrcal_jni_test PRIVATE ${VNLOG_INCLUDE_DIR})
-add_dependencies(mrcal_jni_test vnlog)
+# target_include_directories(mrcal_jni_test PRIVATE ${VNLOG_INCLUDE_DIR})
+# add_dependencies(mrcal_jni_test )
 target_link_libraries(mrcal_jni_test PRIVATE
     ${OpenCV_LIBS}
-    libvnlog
+    # libvnlog
 )
 
 if (WITH_ASAN)
