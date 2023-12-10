@@ -3,6 +3,8 @@ name: CMake
 on:
   push:
     branches: [ "main" ]
+    tags:
+      - 'v*'
   pull_request:
     branches: [ "main" ]
 
@@ -26,9 +28,11 @@ jobs:
     - uses: actions/checkout@v3
       with:
         submodules: 'true'
+        fetch-depth: 0
 
     - name: Fetch tags
       run: git fetch --tags --force
+    - run: git describe --tags
 
     - name: Install Java 17
       uses: actions/setup-java@v3
@@ -77,8 +81,10 @@ jobs:
     - uses: actions/checkout@v3
       with:
         submodules: 'true'
+        fetch-depth: 0
     - name: Fetch tags
       run: git fetch --tags --force
+    - run: git describe --tags
     - uses: pguyot/arm-runner-action@v2
       env:
         ARTIFACTORY_API_KEY: ${{ secrets.ARTIFACTORY_API_KEY }}
@@ -93,6 +99,7 @@ jobs:
           sudo apt install cmake default-jdk default-jre git gcc g++ libmrcal-dev mrbuild libsuitesparse-dev liblist-moreutils-perl -y
           find /usr/lib
           find /usr/bin
+          export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-arm64/
           ./gradlew
           cmake -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DOPENCV_ARCH=linuxarm64
           cmake --build build --config ${{env.BUILD_TYPE}} -j --target mrcal_jni
@@ -116,9 +123,11 @@ jobs:
     - uses: actions/checkout@v3
       with:
         submodules: 'true'
+        fetch-depth: 0
 
     - name: Fetch tags
       run: git fetch --tags --force
+    - run: git describe --tags
 
     - name: Install Java 17
       uses: actions/setup-java@v3
