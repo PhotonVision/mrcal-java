@@ -1,9 +1,0 @@
-mrcal
-{
-global:
-    Java_org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate_1camera;
-    JNI_OnLoad;
-
-local:
-    *;
-};

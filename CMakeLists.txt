@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.18)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 project(mrcal_jni LANGUAGES CXX VERSION 1.0.0)
 
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # C++
 set(CMAKE_CXX_STANDARD 20)
@@ -58,7 +58,6 @@ file(GLOB_RECURSE OPENCV_LIB_PATH
 )
 SET(OPENCV_INCLUDE_PATH ${opencv_header_SOURCE_DIR})
 
-
 # headers and sources
 set(
     INCLUDE_HPP
@@ -91,6 +90,8 @@ add_custom_target(
  COMMENT "Generating minimath"
 )
 
+set( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin )
+set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib )
 
 # Create shared library
 add_library(mrcal_jni SHARED ${INCLUDE_HPP} ${SRC_HPP} ${SRC_CPP})
@@ -104,7 +105,6 @@ ELSE()
     target_link_libraries(mrcal_jni ${OPENCV_LIB_PATH} suitesparseconfig)
 ENDIF()
 
-SET_TARGET_PROPERTIES(mrcal_jni PROPERTIES LINK_FLAGS "-Wl,--version-script=\"${CMAKE_CURRENT_SOURCE_DIR}/linux/exports.txt\"")
 
 # Test script for checking our linker
 add_executable(mrcal_jni_test src/mrcal_test.cpp)
