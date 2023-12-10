@@ -10,6 +10,7 @@ task nativeLibraryJar(type: Jar, dependsOn: copyNativeLibrary) {
     archiveClassifier = nativeName
     from outputsFolder
 }
+build.dependsOn nativeLibraryJar
 
 publishing {
     repositories {
