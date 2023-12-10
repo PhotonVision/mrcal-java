@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.18)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-project(mrcal_jni LANGUAGES CXX VERSION 1.0.0)
+project(mrcal_jni LANGUAGES C CXX VERSION 1.0.0)
 
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 
@@ -102,6 +102,7 @@ IF (WIN32)
     target_link_libraries(mrcal_jni ${OPENCV_LIB_PATH} SuiteSparse::amd SuiteSparse::cholmod)
 ELSE()
     target_link_libraries(mrcal_jni ${OPENCV_LIB_PATH} suitesparseconfig cholmod)
+    target_include_directories(mrcal_jni PUBLIC "/usr/include/suitesparse")
 ENDIF()
 
 
