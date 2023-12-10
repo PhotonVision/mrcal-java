@@ -18,8 +18,8 @@ jobs:
         include:
           - os: ubuntu-22.04
             arch-name: linuxx86-64
-            lib-src: cmake_buildlibmrcal_jni.so
-            lib-dst: cmake_buildlibmrcal_jni_linuxx86-64.so
+            lib-src: cmake_build/libmrcal_jni.so
+            lib-dst: cmake_build/libmrcal_jni_linuxx86-64.so
 
     runs-on: ${{ matrix.os }}
     name: "mrcal-jni - Build - ${{ matrix.arch-name }}"
@@ -81,13 +81,13 @@ jobs:
           sudo apt install cmake default-jdk git gcc g++ libmrcal-dev mrbuild libsuitesparse-dev liblist-moreutils-perl -y
           cmake -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DOPENCV_ARCH=linuxarm64
           cmake --build build --config ${{env.BUILD_TYPE}} -j --target mrcal_jni
-          mv cmake_buildlibmrcal_jni.so cmake_buildlibmrcal_jni_aarch64.so
+          mv cmake_build/libmrcal_jni.so cmake_build/libmrcal_jni_aarch64.so
 
     - uses: actions/upload-artifact@v3
       name: Upload shared library
       with:
         name: libmrcal-jni-pi
-        path: cmake_buildlibmrcal_jni_aarch64.so
+        path: cmake_build/libmrcal_jni_aarch64.so
 
   build-windows:
     runs-on: windows-latest
@@ -139,7 +139,7 @@ jobs:
       with:
         name: libmrcal-jni-windowsx64
         path: |
-          cmake_buildRelease/*.dll
+          cmake_build/bin/**/*.dll
 
   release:
     needs: [build-host, build-raspi]
