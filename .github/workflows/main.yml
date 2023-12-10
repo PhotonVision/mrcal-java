@@ -80,6 +80,8 @@ jobs:
     - name: Fetch tags
       run: git fetch --tags --force
     - uses: pguyot/arm-runner-action@v2
+      env:
+        ARTIFACTORY_API_KEY: ${{ secrets.ARTIFACTORY_API_KEY }}
       with:
         base_image: raspios_lite_arm64:latest
         cpu: cortex-a7
@@ -88,10 +90,11 @@ jobs:
         commands: |
           sudo bash -c "echo 'deb [trusted=yes] http://mrcal.secretsauce.net/packages/jammy/public/ jammy main' >> /etc/apt/sources.list"
           sudo apt update
-          sudo apt install cmake default-jdk git gcc g++ libmrcal-dev mrbuild libsuitesparse-dev liblist-moreutils-perl -y
+          sudo apt install cmake default-jdk default-jre git gcc g++ libmrcal-dev mrbuild libsuitesparse-dev liblist-moreutils-perl -y
+          ./gradlew
           cmake -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DOPENCV_ARCH=linuxarm64
           cmake --build build --config ${{env.BUILD_TYPE}} -j --target mrcal_jni
-          ARTIFACTORY_API_KEY=${{ secrets.ARTIFACTORY_API_KEY }} ./gradlew build ${{ (startsWith(github.event_name, 'push') && 'publish') || '' }}
+          ./gradlew build ${{ (startsWith(github.event_name, 'push') && 'publish') || '' }}
 
     - uses: actions/upload-artifact@v3
       name: Upload jar
