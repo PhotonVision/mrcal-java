@@ -100,7 +100,7 @@ jobs:
           find /usr/lib
           find /usr/bin
           export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-arm64/
-          ./gradlew
+          ./gradlew --stacktrace --debug
           cmake -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DOPENCV_ARCH=linuxarm64
           cmake --build build --config ${{env.BUILD_TYPE}} -j --target mrcal_jni
           ./gradlew build ${{ (startsWith(github.event_name, 'push') && 'publish') || '' }}
