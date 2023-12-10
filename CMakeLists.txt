@@ -102,7 +102,7 @@ IF (WIN32)
     find_package(SuiteSparse CONFIG REQUIRED)
     target_link_libraries(mrcal_jni ${OPENCV_LIB_PATH} SuiteSparse::amd SuiteSparse::cholmod)
 ELSE()
-    target_link_libraries(mrcal_jni ${OPENCV_LIB_PATH} suitesparseconfig)
+    target_link_libraries(mrcal_jni ${OPENCV_LIB_PATH} suitesparseconfig cholmod)
 ENDIF()
 
 
