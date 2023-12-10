@@ -30,9 +30,6 @@ endif()
 set(OPENCV_YEAR "frc2024")
 set(OPENCV_VERSION "4.8.0-2")
 # also valid: windowsx86-64
-if(NOT OPENCV_ARCH)
-    set(OPENCV_ARCH "windowsx86-64") # Set by Actions usually
-endif()
 
 # type can be "", "debug", "static", or "staticdebug"
 set(OPENCV_TYPE "")
@@ -55,8 +52,10 @@ FetchContent_MakeAvailable(opencv_header)
 # This probably doesn't work great with shared libraries, but I don't care about those right now
 file(GLOB_RECURSE OPENCV_LIB_PATH
   "${opencv_lib_SOURCE_DIR}/**/*.lib"
+  "${opencv_lib_SOURCE_DIR}/**/*.so*"
 )
 SET(OPENCV_INCLUDE_PATH ${opencv_header_SOURCE_DIR})
+message("Depending on opencv ${OPENCV_LIB_PATH}")
 
 # headers and sources
 set(
