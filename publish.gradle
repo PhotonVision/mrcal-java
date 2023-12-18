@@ -4,8 +4,6 @@ def nativeName = wpilibTools.platformMapper.currentPlatform.platformName;
 def artifactGroupId = 'org.photonvision'
 def baseArtifactId = "photon-mrcal"
 
-println(baseArtifactId)
-
 task nativeLibraryJar(type: Jar, dependsOn: copyNativeLibrary) {
     archiveClassifier = nativeName
     from outputsFolder

@@ -56,6 +56,8 @@ test {
 ext.nativeName = wpilibTools.platformMapper.currentPlatform.platformName;
 ext.outputsFolder = file("$buildDir/outputs")
 
+println("Building for $nativeName")
+
 tasks.register('copyNativeLibrary', Sync) {
     from "${projectDir}/cmake_build/bin/"
     from "${projectDir}/cmake_build/lib/"
