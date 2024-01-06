@@ -34,3 +34,4 @@
 build/
 cmake_build/*
 .gradle/*
+bin/
