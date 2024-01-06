@@ -359,3 +359,85 @@ mrcal_result::~mrcal_result() {
   // free(Jt.x);
   return;
 }
+
+bool unproject_mrcal(cv::Mat& src, cv::Mat& dst, cv::Mat& cameraMat, cv::Mat& distCoeffs, CameraLensModel lensModel) {
+  
+  mrcal_lensmodel_t mrcal_lensmodel;
+  switch (lensModel) {
+    case CameraLensModel::LENSMODEL_OPENCV5:
+      mrcal_lensmodel.type = MRCAL_LENSMODEL_OPENCV5;
+      break;
+    case CameraLensModel::LENSMODEL_OPENCV8:
+      mrcal_lensmodel.type = MRCAL_LENSMODEL_OPENCV8;
+      break;
+    default:
+      std::cerr << "Unknown lensmodel\n";
+      return false;
+  }
+
+  if (!(dst.cols == 2 && src.cols == 2 && dst.rows == src.rows)) {
+      std::cerr << "Bad input array size\n";
+      return false;
+  }
+  if (!(dst.type() == CV_64FC2 && src.type() == CV_64FC2)) {
+      std::cerr << "Bad input type -- need CV_64F\n";
+      return false;
+  }
+  if (!(dst.isContinuous() && src.isContinuous())) {
+      std::cerr << "Bad input array -- need continuous\n";
+      return false;
+  }
+
+  // extract intrinsics core from opencv camera matrix
+  double fx = cameraMat.at<double>(0, 0);
+  double fy = cameraMat.at<double>(1, 1);
+  double cx = cameraMat.at<double>(0, 2);
+  double cy = cameraMat.at<double>(1, 2);
+
+  // Core, distortion coefficients concatenated
+  int NlensParams = mrcal_lensmodel_num_params(&mrcal_lensmodel);
+  std::vector<double> intrinsics(NlensParams);
+  intrinsics[0] = fx;
+  intrinsics[1] = fy;
+  intrinsics[2] = cx;
+  intrinsics[3] = cy;
+  for (size_t i = 0; i < distCoeffs.cols; i++) {
+    intrinsics[i + 4] = distCoeffs.at<double>(i);
+  }
+
+  // input points in the distorted image pixel coordinates
+  mrcal_point2_t* in = reinterpret_cast<mrcal_point2_t*>(src.data);
+  // vec3 observation vectors defined up-to-length
+  std::vector<mrcal_point3_t> out(src.rows);
+
+
+
+  mrcal_unproject(
+    out.data(), in,
+    src.rows,
+    &mrcal_lensmodel,
+    intrinsics.data()
+  );
+
+  // The output is defined "up-to-length"
+  // Let's project through pinhole again
+
+  // Output points in pinhole pixel coordinates
+  mrcal_point2_t* pinhole_pts = reinterpret_cast<mrcal_point2_t*>(dst.data);
+
+
+  size_t bound = src.rows;
+  for (size_t i = 0; i < bound; i++) {
+    // from mrcal-project-internal/pinhole model
+    mrcal_point3_t& p = out[i];
+
+    double z_recip = 1./p.z;
+    double x = p.x * z_recip;
+    double y = p.y * z_recip;
+
+    pinhole_pts[i].x = x * fx + cx;
+    pinhole_pts[i].y = y * fy + cy;
+  }
+
+  return true;
+}

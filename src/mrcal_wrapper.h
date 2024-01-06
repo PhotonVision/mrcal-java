@@ -71,3 +71,12 @@ std::unique_ptr<mrcal_result> mrcal_main(
     cv::Size calobjectSize, double boardSpacing,
     // res, pixels
     cv::Size cameraRes);
+
+enum class CameraLensModel {
+  LENSMODEL_OPENCV5 = 0,
+  LENSMODEL_OPENCV8,
+  LENSMODEL_STERIOGRAPHIC,
+  LENSMODEL_SPLIEND_STERIOGRAPHIC
+};
+
+bool unproject_mrcal(cv::Mat& src, cv::Mat& dst, cv::Mat& cameraMat, cv::Mat& distCoeffs, CameraLensModel lensModel);
