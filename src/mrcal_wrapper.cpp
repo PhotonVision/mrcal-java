@@ -360,7 +360,13 @@ mrcal_result::~mrcal_result() {
   return;
 }
 
-bool unproject_mrcal(cv::Mat& src, cv::Mat& dst, cv::Mat& cameraMat, cv::Mat& distCoeffs, CameraLensModel lensModel) {
+bool unproject_mrcal(cv::Mat& src, cv::Mat& dst, cv::Mat& cameraMat, cv::Mat& distCoeffs, CameraLensModel lensModel,
+  // Extra stuff for splined stereographic models
+  uint16_t order,
+  uint16_t Nx,
+  uint16_t Ny,
+  uint16_t fov_x_deg
+) {
   
   mrcal_lensmodel_t mrcal_lensmodel;
   switch (lensModel) {
@@ -369,6 +375,21 @@ bool unproject_mrcal(cv::Mat& src, cv::Mat& dst, cv::Mat& cameraMat, cv::Mat& di
       break;
     case CameraLensModel::LENSMODEL_OPENCV8:
       mrcal_lensmodel.type = MRCAL_LENSMODEL_OPENCV8;
+      break;
+    case CameraLensModel::LENSMODEL_STEREOGRAPHIC:
+      mrcal_lensmodel.type = MRCAL_LENSMODEL_STEREOGRAPHIC;
+      break;
+    case CameraLensModel::LENSMODEL_SPLINED_STEREOGRAPHIC:
+      mrcal_lensmodel.type = MRCAL_LENSMODEL_SPLINED_STEREOGRAPHIC;
+
+      /* Maximum degree of each 1D polynomial. This is almost certainly 2 */          
+      mrcal_lensmodel.LENSMODEL_SPLINED_STEREOGRAPHIC__config.fov_x_deg = fov_x_deg;
+      /* The horizontal field of view. Not including fov_y. It's proportional with */ 
+      /* Ny and Nx */                                                                 
+      mrcal_lensmodel.LENSMODEL_SPLINED_STEREOGRAPHIC__config.order = order;
+      /* We have a Nx by Ny grid of control points */                                 
+      mrcal_lensmodel.LENSMODEL_SPLINED_STEREOGRAPHIC__config.Nx = Nx;
+      mrcal_lensmodel.LENSMODEL_SPLINED_STEREOGRAPHIC__config.Ny = Ny;
       break;
     default:
       std::cerr << "Unknown lensmodel\n";

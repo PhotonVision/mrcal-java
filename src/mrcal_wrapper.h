@@ -75,8 +75,14 @@ std::unique_ptr<mrcal_result> mrcal_main(
 enum class CameraLensModel {
   LENSMODEL_OPENCV5 = 0,
   LENSMODEL_OPENCV8,
-  LENSMODEL_STERIOGRAPHIC,
-  LENSMODEL_SPLIEND_STERIOGRAPHIC
+  LENSMODEL_STEREOGRAPHIC,
+  LENSMODEL_SPLINED_STEREOGRAPHIC
 };
 
-bool unproject_mrcal(cv::Mat& src, cv::Mat& dst, cv::Mat& cameraMat, cv::Mat& distCoeffs, CameraLensModel lensModel);
+bool unproject_mrcal(cv::Mat& src, cv::Mat& dst, cv::Mat& cameraMat, cv::Mat& distCoeffs, CameraLensModel lensModel,
+  // Extra stuff for splined stereographic models
+  uint16_t order,
+  uint16_t Nx,
+  uint16_t Ny,
+  uint16_t fov_x_deg
+);
