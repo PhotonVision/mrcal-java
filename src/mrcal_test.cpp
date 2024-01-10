@@ -136,7 +136,6 @@ int homography_test() {
       *std::max_element(stats.residuals.begin(), stats.residuals.end());
 
   if (0) {
-
     std::printf("\n===============================\n\n");
     std::printf("RMS Reprojection Error: %.2f pixels\n", stats.rms_error);
     std::printf("Worst residual (by measurement): %.1f pixels\n", max_error);
@@ -152,13 +151,11 @@ int homography_test() {
     std::printf("\n");
   }
 
-
   return true;
 }
 
 int main() {
   // for (int i = 0; i < 1e6; i++) {
-    homography_test();
+  homography_test();
   // }
-
 }

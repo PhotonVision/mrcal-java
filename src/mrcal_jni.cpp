@@ -205,7 +205,6 @@ Java_org_photonvision_mrcal_MrCalJNI_undistort_1mrcal
   (JNIEnv *, jclass, jlong srcMat, jlong dstMat, jlong camMat, jlong distCoeffs,
    jint lensModelOrdinal, jint order, jint Nx, jint Ny, jint fov_x_deg)
 {
-
   return undistort_mrcal(
       reinterpret_cast<cv::Mat *>(srcMat), reinterpret_cast<cv::Mat *>(dstMat),
       reinterpret_cast<cv::Mat *>(camMat),

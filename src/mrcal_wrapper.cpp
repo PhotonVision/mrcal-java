@@ -365,7 +365,6 @@ bool undistort_mrcal(const cv::Mat *src, cv::Mat *dst, const cv::Mat *cameraMat,
                      // Extra stuff for splined stereographic models
                      uint16_t order, uint16_t Nx, uint16_t Ny,
                      uint16_t fov_x_deg) {
-
   mrcal_lensmodel_t mrcal_lensmodel;
   switch (lensModel) {
   case CameraLensModel::LENSMODEL_OPENCV5:
@@ -383,8 +382,10 @@ bool undistort_mrcal(const cv::Mat *src, cv::Mat *dst, const cv::Mat *cameraMat,
     /* Maximum degree of each 1D polynomial. This is almost certainly 2 */
     /* (quadratic splines, C1 continuous) or 3 (cubic splines, C2 continuous) */
     mrcal_lensmodel.LENSMODEL_SPLINED_STEREOGRAPHIC__config.order = order;
-    /* The horizontal field of view. Not including fov_y. It's proportional with Ny and Nx */
-    mrcal_lensmodel.LENSMODEL_SPLINED_STEREOGRAPHIC__config.fov_x_deg = fov_x_deg;
+    /* The horizontal field of view. Not including fov_y. It's proportional with
+     * Ny and Nx */
+    mrcal_lensmodel.LENSMODEL_SPLINED_STEREOGRAPHIC__config.fov_x_deg =
+        fov_x_deg;
     /* We have a Nx by Ny grid of control points */
     mrcal_lensmodel.LENSMODEL_SPLINED_STEREOGRAPHIC__config.Nx = Nx;
     mrcal_lensmodel.LENSMODEL_SPLINED_STEREOGRAPHIC__config.Ny = Ny;
