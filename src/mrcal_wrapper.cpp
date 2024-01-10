@@ -231,7 +231,7 @@ std::unique_ptr<mrcal_result> mrcal_main(
       Nframes, Npoints, Npoints_fixed, c_observations_board,
       c_observations_point, problem_selections, &mrcal_lensmodel);
 
-  cholmod_sparse* Jt = cholmod_l_allocate_sparse(
+  cholmod_sparse *Jt = cholmod_l_allocate_sparse(
       static_cast<size_t>(Nstate), static_cast<size_t>(Nmeasurements),
       static_cast<size_t>(N_j_nonzero), 1, 1, 0, CHOLMOD_REAL, cctx.cc);
 
@@ -354,66 +354,66 @@ mrcal_pose_t getSeedPose(const mrcal_point3_t *c_observations_board_pool,
 
 mrcal_result::~mrcal_result() {
   cholmod_l_free_sparse(&Jt, cctx.cc);
-  // free(Jt.p);
-  // free(Jt.i);
-  // free(Jt.x);
+  // std::free(Jt.p);
+  // std::free(Jt.i);
+  // std::free(Jt.x);
   return;
 }
 
-bool unproject_mrcal(cv::Mat& src, cv::Mat& dst, cv::Mat& cameraMat, cv::Mat& distCoeffs, CameraLensModel lensModel,
-  // Extra stuff for splined stereographic models
-  uint16_t order,
-  uint16_t Nx,
-  uint16_t Ny,
-  uint16_t fov_x_deg
-) {
-  
+bool undistort_mrcal(const cv::Mat *src, cv::Mat *dst, const cv::Mat *cameraMat,
+                     const cv::Mat *distCoeffs, CameraLensModel lensModel,
+                     // Extra stuff for splined stereographic models
+                     uint16_t order, uint16_t Nx, uint16_t Ny,
+                     uint16_t fov_x_deg) {
+
   mrcal_lensmodel_t mrcal_lensmodel;
   switch (lensModel) {
-    case CameraLensModel::LENSMODEL_OPENCV5:
-      mrcal_lensmodel.type = MRCAL_LENSMODEL_OPENCV5;
-      break;
-    case CameraLensModel::LENSMODEL_OPENCV8:
-      mrcal_lensmodel.type = MRCAL_LENSMODEL_OPENCV8;
-      break;
-    case CameraLensModel::LENSMODEL_STEREOGRAPHIC:
-      mrcal_lensmodel.type = MRCAL_LENSMODEL_STEREOGRAPHIC;
-      break;
-    case CameraLensModel::LENSMODEL_SPLINED_STEREOGRAPHIC:
-      mrcal_lensmodel.type = MRCAL_LENSMODEL_SPLINED_STEREOGRAPHIC;
+  case CameraLensModel::LENSMODEL_OPENCV5:
+    mrcal_lensmodel.type = MRCAL_LENSMODEL_OPENCV5;
+    break;
+  case CameraLensModel::LENSMODEL_OPENCV8:
+    mrcal_lensmodel.type = MRCAL_LENSMODEL_OPENCV8;
+    break;
+  case CameraLensModel::LENSMODEL_STEREOGRAPHIC:
+    mrcal_lensmodel.type = MRCAL_LENSMODEL_STEREOGRAPHIC;
+    break;
+  case CameraLensModel::LENSMODEL_SPLINED_STEREOGRAPHIC:
+    mrcal_lensmodel.type = MRCAL_LENSMODEL_SPLINED_STEREOGRAPHIC;
 
-      /* Maximum degree of each 1D polynomial. This is almost certainly 2 */          
-      mrcal_lensmodel.LENSMODEL_SPLINED_STEREOGRAPHIC__config.fov_x_deg = fov_x_deg;
-      /* The horizontal field of view. Not including fov_y. It's proportional with */ 
-      /* Ny and Nx */                                                                 
-      mrcal_lensmodel.LENSMODEL_SPLINED_STEREOGRAPHIC__config.order = order;
-      /* We have a Nx by Ny grid of control points */                                 
-      mrcal_lensmodel.LENSMODEL_SPLINED_STEREOGRAPHIC__config.Nx = Nx;
-      mrcal_lensmodel.LENSMODEL_SPLINED_STEREOGRAPHIC__config.Ny = Ny;
-      break;
-    default:
-      std::cerr << "Unknown lensmodel\n";
-      return false;
+    /* Maximum degree of each 1D polynomial. This is almost certainly 2 */
+    mrcal_lensmodel.LENSMODEL_SPLINED_STEREOGRAPHIC__config.fov_x_deg =
+        fov_x_deg;
+    /* The horizontal field of view. Not including fov_y. It's proportional with
+     */
+    /* Ny and Nx */
+    mrcal_lensmodel.LENSMODEL_SPLINED_STEREOGRAPHIC__config.order = order;
+    /* We have a Nx by Ny grid of control points */
+    mrcal_lensmodel.LENSMODEL_SPLINED_STEREOGRAPHIC__config.Nx = Nx;
+    mrcal_lensmodel.LENSMODEL_SPLINED_STEREOGRAPHIC__config.Ny = Ny;
+    break;
+  default:
+    std::cerr << "Unknown lensmodel\n";
+    return false;
   }
 
-  if (!(dst.cols == 2 && src.cols == 2 && dst.rows == src.rows)) {
-      std::cerr << "Bad input array size\n";
-      return false;
+  if (!(dst->cols == 2 && dst->cols == 2 && dst->rows == dst->rows)) {
+    std::cerr << "Bad input array size\n";
+    return false;
   }
-  if (!(dst.type() == CV_64FC2 && src.type() == CV_64FC2)) {
-      std::cerr << "Bad input type -- need CV_64F\n";
-      return false;
+  if (!(dst->type() == CV_64FC2 && dst->type() == CV_64FC2)) {
+    std::cerr << "Bad input type -- need CV_64F\n";
+    return false;
   }
-  if (!(dst.isContinuous() && src.isContinuous())) {
-      std::cerr << "Bad input array -- need continuous\n";
-      return false;
+  if (!(dst->isContinuous() && dst->isContinuous())) {
+    std::cerr << "Bad input array -- need continuous\n";
+    return false;
   }
 
   // extract intrinsics core from opencv camera matrix
-  double fx = cameraMat.at<double>(0, 0);
-  double fy = cameraMat.at<double>(1, 1);
-  double cx = cameraMat.at<double>(0, 2);
-  double cy = cameraMat.at<double>(1, 2);
+  double fx = cameraMat->at<double>(0, 0);
+  double fy = cameraMat->at<double>(1, 1);
+  double cx = cameraMat->at<double>(0, 2);
+  double cy = cameraMat->at<double>(1, 2);
 
   // Core, distortion coefficients concatenated
   int NlensParams = mrcal_lensmodel_num_params(&mrcal_lensmodel);
@@ -422,37 +422,30 @@ bool unproject_mrcal(cv::Mat& src, cv::Mat& dst, cv::Mat& cameraMat, cv::Mat& di
   intrinsics[1] = fy;
   intrinsics[2] = cx;
   intrinsics[3] = cy;
-  for (size_t i = 0; i < distCoeffs.cols; i++) {
-    intrinsics[i + 4] = distCoeffs.at<double>(i);
+  for (size_t i = 0; i < distCoeffs->cols; i++) {
+    intrinsics[i + 4] = distCoeffs->at<double>(i);
   }
 
   // input points in the distorted image pixel coordinates
-  mrcal_point2_t* in = reinterpret_cast<mrcal_point2_t*>(src.data);
+  mrcal_point2_t *in = reinterpret_cast<mrcal_point2_t *>(dst->data);
   // vec3 observation vectors defined up-to-length
-  std::vector<mrcal_point3_t> out(src.rows);
+  std::vector<mrcal_point3_t> out(dst->rows);
 
-
-
-  mrcal_unproject(
-    out.data(), in,
-    src.rows,
-    &mrcal_lensmodel,
-    intrinsics.data()
-  );
+  mrcal_unproject(out.data(), in, dst->rows, &mrcal_lensmodel,
+                  intrinsics.data());
 
   // The output is defined "up-to-length"
   // Let's project through pinhole again
 
   // Output points in pinhole pixel coordinates
-  mrcal_point2_t* pinhole_pts = reinterpret_cast<mrcal_point2_t*>(dst.data);
+  mrcal_point2_t *pinhole_pts = reinterpret_cast<mrcal_point2_t *>(dst->data);
 
-
-  size_t bound = src.rows;
+  size_t bound = dst->rows;
   for (size_t i = 0; i < bound; i++) {
     // from mrcal-project-internal/pinhole model
-    mrcal_point3_t& p = out[i];
+    mrcal_point3_t &p = out[i];
 
-    double z_recip = 1./p.z;
+    double z_recip = 1. / p.z;
     double x = p.x * z_recip;
     double y = p.y * z_recip;
 

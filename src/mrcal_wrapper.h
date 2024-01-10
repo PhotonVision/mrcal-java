@@ -29,18 +29,18 @@ extern "C" {
 #include <suitesparse/cholmod_core.h>
 } // extern "C"
 
+#include <memory>
 #include <opencv2/opencv.hpp>
 #include <span>
-#include <vector>
 #include <utility>
-#include <memory>
+#include <vector>
 
 struct mrcal_result {
   bool success;
   std::vector<double> intrinsics;
   double rms_error;
   std::vector<double> residuals;
-  cholmod_sparse* Jt;
+  cholmod_sparse *Jt;
   mrcal_calobject_warp_t calobject_warp;
   int Noutliers_board;
   // TODO standard devs
@@ -48,7 +48,7 @@ struct mrcal_result {
   mrcal_result() = default;
   mrcal_result(bool success_, std::vector<double> intrinsics_,
                double rms_error_, std::vector<double> residuals_,
-               cholmod_sparse* Jt_, mrcal_calobject_warp_t calobject_warp_,
+               cholmod_sparse *Jt_, mrcal_calobject_warp_t calobject_warp_,
                int Noutliers_board_)
       : success{success_}, intrinsics{std::move(intrinsics_)},
         rms_error{rms_error_}, residuals{std::move(residuals_)}, Jt{Jt_},
@@ -79,10 +79,8 @@ enum class CameraLensModel {
   LENSMODEL_SPLINED_STEREOGRAPHIC
 };
 
-bool unproject_mrcal(cv::Mat& src, cv::Mat& dst, cv::Mat& cameraMat, cv::Mat& distCoeffs, CameraLensModel lensModel,
-  // Extra stuff for splined stereographic models
-  uint16_t order,
-  uint16_t Nx,
-  uint16_t Ny,
-  uint16_t fov_x_deg
-);
+bool undistort_mrcal(const cv::Mat *src, cv::Mat *dst, const cv::Mat *cameraMat,
+                     const cv::Mat *distCoeffs, CameraLensModel lensModel,
+                     // Extra stuff for splined stereographic models
+                     uint16_t order, uint16_t Nx, uint16_t Ny,
+                     uint16_t fov_x_deg);

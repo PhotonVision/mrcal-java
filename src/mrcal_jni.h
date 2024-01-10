@@ -20,8 +20,8 @@
 
 /* Header for class MrCalJNI */
 
-#ifndef MRCAL_JAVA_MRCAL_JNI_H_
-#define MRCAL_JAVA_MRCAL_JNI_H_
+#ifndef MRCAL_JAVA_SRC_MRCAL_JNI_H_
+#define MRCAL_JAVA_SRC_MRCAL_JNI_H_
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -34,7 +34,17 @@ JNIEXPORT jobject JNICALL
 Java_org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate_1camera(
     JNIEnv *, jclass, jdoubleArray, jint, jint, jdouble, jint, jint, jdouble);
 
+/*
+ * Class:     org_photonvision_mrcal_MrCalJNI
+ * Method:    undistort_mrcal
+ * Signature: (JJJJI)Z
+ */
+JNIEXPORT jboolean JNICALL
+Java_org_photonvision_mrcal_MrCalJNI_undistort_1mrcal(JNIEnv *, jclass, jlong,
+                                                      jlong, jlong, jlong, jint,
+                                                      jint, jint, jint, jint);
+
 #ifdef __cplusplus
 } // extern "C"
 #endif
-#endif // MRCAL_JAVA_MRCAL_JNI_H_
+#endif // MRCAL_JAVA_SRC_MRCAL_JNI_H_

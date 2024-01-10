@@ -25,7 +25,6 @@ import java.util.List;
 import org.opencv.core.MatOfPoint2f;
 
 public class MrCalJNI {
-
     public static class MrCalResult {
         public boolean success;
         public double[] intrinsics;
@@ -63,12 +62,12 @@ public class MrCalJNI {
             int boardWidth, int boardHeight, double boardSpacing,
             int imageWidth, int imageHeight, double focalLen);
 
+    public static native boolean undistort_mrcal(long srcMat, long dstMat, long cameraMat, long distCoeffsMat, int lensModelOrdinal, int order, int Nx, int Ny, int fov_x_deg);
 
     public static MrCalResult calibrateCamera(
             List<MatOfPoint2f> board_corners,
             int boardWidth, int boardHeight, double boardSpacing,
             int imageWidth, int imageHeight, double focalLen) {
-
         double[] observations = new double[boardWidth * boardHeight * 3 * board_corners.size()];
 
         int i = 0;
