@@ -136,7 +136,6 @@ int homography_test() {
       *std::max_element(stats.residuals.begin(), stats.residuals.end());
 
   if (0) {
-
     std::printf("\n===============================\n\n");
     std::printf("RMS Reprojection Error: %.2f pixels\n", stats.rms_error);
     std::printf("Worst residual (by measurement): %.1f pixels\n", max_error);
@@ -152,8 +151,22 @@ int homography_test() {
     std::printf("\n");
   }
 
+  double fx = 100, fy = 100, cx = 50, cy = 20;
+  cv::Mat1d camMat = (Mat_<double>(3,3) << fx, 0, cx, 0, fy, cy, 0, 0, 1);
+  cv::Mat1d distCoeffs = (Mat_<double>(1,5) << 0.17802570252202954,-1.461379065131586,0.001019661566461145,0.0003215220840230439,2.7249642067580533);
 
-  return true;
+  undistort_mrcal(&inputs, &outputs, &camMat, &distCoeffs, CameraLensModel::LENSMODEL_OPENCV5, 0, 0, 0, 0);
+
+  cv::Mat2d outputs_opencv = cv::Mat2d::zeros(inputs.size());
+  cv::undistortImagePoints(inputs, outputs_opencv, camMat, distCoeffs,
+                          TermCriteria(TermCriteria::MAX_ITER + TermCriteria::EPS, 50,
+                                                      1e-4));
+
+  std::cout << "cam mat\n" << camMat << std::endl;
+  std::cout << "dist\n" << distCoeffs << std::endl;
+  std::cout << "Inputs\n" << inputs << std::endl;
+  std::cout << "Outputs (mrcal)\n" << outputs << std::endl;
+  std::cout << "Outputs (opencv)\n" << outputs_opencv << std::endl;
 }
 
 int main() {
