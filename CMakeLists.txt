@@ -8,15 +8,11 @@ option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set (WITH_ASAN OFF)
+set (WITH_ASAN ON)
 
 if (WITH_ASAN)
     add_compile_options(-fsanitize=address -g -Wall -fsanitize=undefined)
 endif ()
-
-
-# add_library(libvnlog SHARED IMPORTED)
-# set_target_properties(libvnlog PROPERTIES IMPORTED_LOCATION ${SOURCE_DIR}/libvnlog.so)
 
 
 find_package(JNI)
@@ -71,7 +67,7 @@ set(
     src/mrcal_wrapper.cpp
     src/mrcal_jni.cpp
     libdogleg/dogleg.c
-    mrcal/mrcal.c mrcal/cahvore.cc mrcal/poseutils-opencv.c mrcal/poseutils-uses-autodiff.cc mrcal/poseutils.c mrcal/mrcal-opencv.c 
+    mrcal/mrcal.c mrcal/cahvore.cc mrcal/poseutils-opencv.c mrcal/poseutils-uses-autodiff.cc mrcal/poseutils.c mrcal/opencv.c mrcal/triangulation.cc
 )
 
 
@@ -109,11 +105,11 @@ ENDIF()
 # Test script for checking our linker
 add_executable(mrcal_jni_test src/mrcal_test.cpp)
 target_link_libraries(mrcal_jni_test PUBLIC mrcal_jni)
-# target_include_directories(mrcal_jni_test PRIVATE ${VNLOG_INCLUDE_DIR})
+target_include_directories(mrcal_jni_test PRIVATE ${PROJECT_SOURCE_DIR}/vnlog)
 # add_dependencies(mrcal_jni_test )
 target_link_libraries(mrcal_jni_test PRIVATE
     ${OpenCV_LIBS}
-    # libvnlog
+    ${PROJECT_SOURCE_DIR}/vnlog/libvnlog.so
 )
 
 if (WITH_ASAN)

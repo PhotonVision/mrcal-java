@@ -31,7 +31,7 @@
 using namespace cv;
 
 extern "C" {
-#include <vnlog-parser.h>
+#include "vnlog-parser.h"
 } // extern "C"
 
 struct cmpByFilename {
@@ -44,15 +44,14 @@ struct cmpByFilename {
 };
 
 int homography_test() {
-  Size boardSize = {7, 7};
-  Size imagerSize = {640, 480};
+  Size boardSize = {18, 13};
+  Size imagerSize = {1600, 1200};
   // std::FILE *fp =
   //     std::fopen("/home/matt/github/photon_640_480/corners.vnl", "r");
   // Size boardSize = {10, 10};
   // Size imagerSize = {1600, 896};
   std::FILE *fp =
-      std::fopen("/home/matt/Documents/GitHub/photonvision/test-resources/"
-                 "calibrationSquaresImg/piCam/640_480_1/corners.vnl",
+      std::fopen("/home/matt/mrcal_debug_tmp/output_will/corners.vnl",
                  "r");
 
   if (fp == NULL)
@@ -125,7 +124,7 @@ int homography_test() {
   }
 
   auto cal_result = mrcal_main(observations_board, frames_rt_toref, boardSize,
-                               0.0254, imagerSize);
+                               0.0254, imagerSize, 1500);
 
   auto dt = std::chrono::steady_clock::now() - start;
   int dt_ms = dt.count();
@@ -151,25 +150,25 @@ int homography_test() {
     std::printf("\n");
   }
 
-  double fx = 100, fy = 100, cx = 50, cy = 20;
-  cv::Mat1d camMat = (Mat_<double>(3, 3) << fx, 0, cx, 0, fy, cy, 0, 0, 1);
-  cv::Mat1d distCoeffs =
-      (Mat_<double>(1, 5) << 0.17802570252202954, -1.461379065131586,
-       0.001019661566461145, 0.0003215220840230439, 2.7249642067580533);
+  // double fx = 100, fy = 100, cx = 50, cy = 20;
+  // cv::Mat1d camMat = (Mat_<double>(3, 3) << fx, 0, cx, 0, fy, cy, 0, 0, 1);
+  // cv::Mat1d distCoeffs =
+  //     (Mat_<double>(1, 5) << 0.17802570252202954, -1.461379065131586,
+  //      0.001019661566461145, 0.0003215220840230439, 2.7249642067580533);
 
-  undistort_mrcal(&inputs, &outputs, &camMat, &distCoeffs,
-                  CameraLensModel::LENSMODEL_OPENCV5, 0, 0, 0, 0);
+  // undistort_mrcal(&inputs, &outputs, &camMat, &distCoeffs,
+  //                 CameraLensModel::LENSMODEL_OPENCV5, 0, 0, 0, 0);
 
-  cv::Mat2d outputs_opencv = cv::Mat2d::zeros(inputs.size());
-  cv::undistortImagePoints(
-      inputs, outputs_opencv, camMat, distCoeffs,
-      TermCriteria(TermCriteria::MAX_ITER + TermCriteria::EPS, 50, 1e-4));
+  // cv::Mat2d outputs_opencv = cv::Mat2d::zeros(inputs.size());
+  // cv::undistortImagePoints(
+  //     inputs, outputs_opencv, camMat, distCoeffs,
+  //     TermCriteria(TermCriteria::MAX_ITER + TermCriteria::EPS, 50, 1e-4));
 
-  std::cout << "cam mat\n" << camMat << std::endl;
-  std::cout << "dist\n" << distCoeffs << std::endl;
-  std::cout << "Inputs\n" << inputs << std::endl;
-  std::cout << "Outputs (mrcal)\n" << outputs << std::endl;
-  std::cout << "Outputs (opencv)\n" << outputs_opencv << std::endl;
+  // std::cout << "cam mat\n" << camMat << std::endl;
+  // std::cout << "dist\n" << distCoeffs << std::endl;
+  // std::cout << "Inputs\n" << inputs << std::endl;
+  // std::cout << "Outputs (mrcal)\n" << outputs << std::endl;
+  // std::cout << "Outputs (opencv)\n" << outputs_opencv << std::endl;
 }
 
 int main() {
