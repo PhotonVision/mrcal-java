@@ -153,8 +153,8 @@ static std::unique_ptr<mrcal_result> mrcal_calibrate(
   int Ncameras_extrinsics = 0; // Seems to always be zero for single camera
   int Nframes =
       frames_rt_toref.size(); // Number of pictures of the object we've got
-  mrcal_observation_point_triangulated_t *observations_point_triangulated =
-      NULL;
+  // mrcal_observation_point_triangulated_t *observations_point_triangulated =
+  //     NULL;
 
   if (!lensmodel_one_validate_args(&mrcal_lensmodel, intrinsics, false)) {
     auto ret = std::make_unique<mrcal_result>();
@@ -167,8 +167,9 @@ static std::unique_ptr<mrcal_result> mrcal_calibrate(
       Nobservations_board, problem_selections, &mrcal_lensmodel);
 
   int Nmeasurements = mrcal_num_measurements(
-      Nobservations_board, Nobservations_point, observations_point_triangulated,
-      0, // hard-coded to 0
+      Nobservations_board, Nobservations_point, 
+      // observations_point_triangulated,
+      // 0, // hard-coded to 0
       calibration_object_width_n, calibration_object_height_n,
       Ncameras_intrinsics, Ncameras_extrinsics, Nframes, Npoints, Npoints_fixed,
       problem_selections, &mrcal_lensmodel);
@@ -199,8 +200,9 @@ static std::unique_ptr<mrcal_result> mrcal_calibrate(
       c_extrinsics, c_frames, c_points, c_calobject_warp, Ncameras_intrinsics,
       Ncameras_extrinsics, Nframes, Npoints, Npoints_fixed,
       c_observations_board, c_observations_point, Nobservations_board,
-      Nobservations_point, observations_point_triangulated, -1,
-      c_observations_board_pool, NULL, &mrcal_lensmodel, c_imagersizes,
+      Nobservations_point, 
+      // observations_point_triangulated, -1,
+      c_observations_board_pool, &mrcal_lensmodel, c_imagersizes,
       problem_selections, &problem_constants, calibration_object_spacing,
       calibration_object_width_n, calibration_object_height_n, verbose, false);
 
@@ -234,7 +236,7 @@ static std::unique_ptr<mrcal_result> mrcal_calibrate(
   std::vector<double> residuals = {c_x_final, c_x_final + Nmeasurements};
   return std::make_unique<mrcal_result>(
       true, intrinsics, stats.rms_reproj_error__pixels, residuals, Jt,
-      calobject_warp, stats.Noutliers_board);
+      calobject_warp, stats.Noutliers);
 }
 
 struct MrcalSolveOptions {
