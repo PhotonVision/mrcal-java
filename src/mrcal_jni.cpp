@@ -164,7 +164,8 @@ Java_org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate_1camera
   }
 
   auto statsptr = mrcal_main(observations, total_frames_rt_toref, boardSize,
-                             static_cast<double>(boardSpacing), imagerSize, focalLenGuessMM);
+                             static_cast<double>(boardSpacing), imagerSize,
+                             focalLenGuessMM);
   if (!statsptr) {
     return nullptr;
   }

@@ -167,8 +167,7 @@ static std::unique_ptr<mrcal_result> mrcal_calibrate(
       Nobservations_board, problem_selections, &mrcal_lensmodel);
 
   int Nmeasurements = mrcal_num_measurements(
-      Nobservations_board, Nobservations_point,
-      observations_point_triangulated,
+      Nobservations_board, Nobservations_point, observations_point_triangulated,
       0, // hard-coded to 0
       calibration_object_width_n, calibration_object_height_n,
       Ncameras_intrinsics, Ncameras_extrinsics, Nframes, Npoints, Npoints_fixed,
@@ -200,15 +199,13 @@ static std::unique_ptr<mrcal_result> mrcal_calibrate(
       c_extrinsics, c_frames, c_points, c_calobject_warp, Ncameras_intrinsics,
       Ncameras_extrinsics, Nframes, Npoints, Npoints_fixed,
       c_observations_board, c_observations_point, Nobservations_board,
-      Nobservations_point, 
-      observations_point_triangulated, -1,
-      c_observations_board_pool, NULL, &mrcal_lensmodel,
-      c_imagersizes, problem_selections, &problem_constants,
-      calibration_object_spacing, calibration_object_width_n,
-      calibration_object_height_n, verbose, false);
+      Nobservations_point, observations_point_triangulated, -1,
+      c_observations_board_pool, NULL, &mrcal_lensmodel, c_imagersizes,
+      problem_selections, &problem_constants, calibration_object_spacing,
+      calibration_object_width_n, calibration_object_height_n, verbose, false);
 
   // // and for fun, evaluate the jacobian
-  cholmod_sparse* Jt = NULL;
+  cholmod_sparse *Jt = NULL;
   // int N_j_nonzero = _mrcal_num_j_nonzero(
   //     Nobservations_board, Nobservations_point, calibration_object_width_n,
   //     calibration_object_height_n, Ncameras_intrinsics, Ncameras_extrinsics,
@@ -326,12 +323,12 @@ mrcal_pose_t getSeedPose(const mrcal_point3_t *c_observations_board_pool,
   double cy = (imagerSize.height / 2.0) - 0.5;
 
   vector<Point3f> objectPoints;
-  vector<Point2f> imagePoints;
+  vector<Point2d> imagePoints;
 
   // Fill in object/image points
   for (int i = 0; i < boardSize.height; i++) {
     for (int j = 0; j < boardSize.width; j++) {
-      auto &corner = c_observations_board_pool[i * boardSize.height + j];
+      auto &corner = c_observations_board_pool[i * boardSize.width + j];
       // weight<0 means ignored -- filter these out
       if (corner.z >= 0) {
         imagePoints.emplace_back(corner.x, corner.y);
@@ -340,6 +337,31 @@ mrcal_pose_t getSeedPose(const mrcal_point3_t *c_observations_board_pool,
         std::printf("Ignoring %i,%i!\n", i, j);
       }
     }
+  }
+
+  {
+    // convert from stereographic to pinhole to match python
+    std::vector<mrcal_point2_t> mrcal_imagepts(imagePoints.size());
+    std::transform(
+        imagePoints.begin(), imagePoints.end(), mrcal_imagepts.begin(),
+        [](const auto &pt) { return mrcal_point2_t{.x = pt.x, .y = pt.y}; });
+
+    mrcal_lensmodel_t model{.type = MRCAL_LENSMODEL_STEREOGRAPHIC};
+    std::vector<mrcal_point3_t> out(imagePoints.size());
+    const double intrinsics[] = {fx, fy, cx, cy};
+    bool ret = mrcal_unproject(out.data(), mrcal_imagepts.data(),
+                               mrcal_imagepts.size(), &model, intrinsics);
+    if (!ret) {
+      std::cerr << "couldn't unproject!" << std::endl;
+    }
+    model = {.type = MRCAL_LENSMODEL_PINHOLE};
+    mrcal_project(mrcal_imagepts.data(), NULL, NULL, out.data(), out.size(),
+                  &model, intrinsics);
+
+    std::transform(mrcal_imagepts.begin(), mrcal_imagepts.end(),
+                   imagePoints.begin(), [](const auto &pt) {
+                     return Point2d{pt.x, pt.y};
+                   });
   }
 
   // Initial guess at intrinsics
@@ -351,14 +373,13 @@ mrcal_pose_t getSeedPose(const mrcal_point3_t *c_observations_board_pool,
   for (auto a : objectPoints)
     objectPoints3.push_back(Point3f(a.x, a.y, 0));
 
-  for (size_t i = 0; i < imagePoints.size(); i++) {
-    auto o = objectPoints3[i];
-    auto im = imagePoints[i];
-    std::cout << o << " | " << im << std::endl;
-  }
+  // for (auto& o : objectPoints) std::cout << o << std::endl;
+  // for (auto& i : imagePoints) std::cout << i << std::endl;
+  // std::cout << "cam mat\n" << cameraMatrix << std::endl;
+  // std::cout << "distortion: " << distCoeffs << std::endl;
 
   solvePnP(objectPoints3, imagePoints, cameraMatrix, distCoeffs, rvec, tvec,
-           false);
+           false, SOLVEPNP_ITERATIVE);
 
   return mrcal_pose_t{.r = {.x = rvec(0), .y = rvec(1), .z = rvec(2)},
                       .t = {.x = tvec(0), .y = tvec(1), .z = tvec(2)}};
@@ -468,7 +489,9 @@ std::unique_ptr<mrcal_result> mrcal_main(
     std::copy(seedDistortions.begin(), seedDistortions.end(),
               intrinsics.begin() + result->intrinsics.size());
 
-    std::cout << "Optimizing everything except board warp from seeded intrinsics" << std::endl;
+    std::cout
+        << "Optimizing everything except board warp from seeded intrinsics"
+        << std::endl;
     mrcal_problem_selections_t options = construct_problem_selections(
         {.do_optimize_intrinsics_core = true,
          .do_optimize_intrinsics_distortions = true,

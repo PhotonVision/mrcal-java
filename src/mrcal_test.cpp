@@ -51,8 +51,7 @@ int homography_test() {
   // Size boardSize = {10, 10};
   // Size imagerSize = {1600, 896};
   std::FILE *fp =
-      std::fopen("/home/matt/mrcal_debug_tmp/output_will/images-trimmed/corners.vnl",
-                 "r");
+      std::fopen("/home/matt/mrcal_will_debug/imgs/corners.vnl", "r");
 
   if (fp == NULL)
     return -1;
@@ -105,23 +104,33 @@ int homography_test() {
   observations_board.reserve(total_points);
   frames_rt_toref.reserve(points.size());
 
+  std::chrono::steady_clock::time_point begin =
+      std::chrono::steady_clock::now();
+
   for (const auto &[key, value] : points) {
     if (value.size()) {
       auto ret = getSeedPose(value.data(), boardSize, imagerSize, 0.03, 1200);
 
       if (1)
-        std::printf("Seed pose %s: r %f %f %f t %f %f %f\n", key.c_str(),
-                    ret.r.x, ret.r.y, ret.r.z, ret.t.x, ret.t.y, ret.t.z);
+        // std::printf("Seed pose %s: r %f %f %f t %f %f %f\n", key.c_str(),
+        //             ret.r.x, ret.r.y, ret.r.z, ret.t.x, ret.t.y, ret.t.z);
 
-      // Append to the Big List of board corners/levels
-      observations_board.insert(observations_board.end(), value.begin(),
-                                value.end());
+        // Append to the Big List of board corners/levels
+        observations_board.insert(observations_board.end(), value.begin(),
+                                  value.end());
       // And list of pose seeds
       frames_rt_toref.push_back(ret);
     } else {
       std::printf("No points for %s\n", key.c_str());
     }
   }
+
+  std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+  std::cout << "Seed took: "
+            << std::chrono::duration_cast<std::chrono::milliseconds>(end -
+                                                                     begin)
+                   .count()
+            << "[ms]" << std::endl;
 
   auto cal_result = mrcal_main(observations_board, frames_rt_toref, boardSize,
                                0.030, imagerSize, 1200);

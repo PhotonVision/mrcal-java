@@ -70,10 +70,9 @@ std::unique_ptr<mrcal_result> mrcal_main(
     // Chessboard size, in corners (not squares)
     cv::Size calobjectSize, double boardSpacing,
     // res, pixels
-    cv::Size cameraRes, 
+    cv::Size cameraRes,
     // focal length, in pixels
-    double focal_len_guess
-    );
+    double focal_len_guess);
 
 enum class CameraLensModel {
   LENSMODEL_OPENCV5 = 0,
