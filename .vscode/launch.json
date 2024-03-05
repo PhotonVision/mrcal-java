@@ -5,17 +5,23 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "type": "java",
-      "name": "MrCalJNI",
+      "name": "Python debug calibrate cameras",
+      "type": "debugpy",
       "request": "launch",
-      "mainClass": "org.photonvision.mrcal.MrCalJNI",
-      "projectName": "mrcal-java_a3a3fa78"
+      "program": "/usr/bin/mrcal-calibrate-cameras",
+      "console": "integratedTerminal",
+      "cwd": "/home/matt/mrcal_debug_tmp/output_will/images-trimmed",
+      "args": [
+        "--corners-cache","corners.vnl","--lensmodel","LENSMODEL_OPENCV8","--focal","1200",
+        "--object-spacing","0.03","--object-width-n","18","--object-height-n","13","*.png"
+      ],
+      "justMyCode": false
     },
     {
       "name": "(gdb) Launch mrcal jni test",
       "type": "cppdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/build/mrcal_jni_test",
+      "program": "${workspaceFolder}/cmake_build/bin/mrcal_jni_test",
       "args": [],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",

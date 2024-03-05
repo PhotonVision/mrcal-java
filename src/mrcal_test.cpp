@@ -31,7 +31,7 @@
 using namespace cv;
 
 extern "C" {
-#include <vnlog-parser.h>
+#include "vnlog-parser.h"
 } // extern "C"
 
 struct cmpByFilename {
@@ -44,16 +44,14 @@ struct cmpByFilename {
 };
 
 int homography_test() {
-  Size boardSize = {7, 7};
-  Size imagerSize = {640, 480};
+  Size boardSize = {18, 13};
+  Size imagerSize = {1600, 1200};
   // std::FILE *fp =
   //     std::fopen("/home/matt/github/photon_640_480/corners.vnl", "r");
   // Size boardSize = {10, 10};
   // Size imagerSize = {1600, 896};
   std::FILE *fp =
-      std::fopen("/home/matt/Documents/GitHub/photonvision/test-resources/"
-                 "calibrationSquaresImg/piCam/640_480_1/corners.vnl",
-                 "r");
+      std::fopen("/home/matt/mrcal_will_debug/imgs/corners.vnl", "r");
 
   if (fp == NULL)
     return -1;
@@ -106,17 +104,20 @@ int homography_test() {
   observations_board.reserve(total_points);
   frames_rt_toref.reserve(points.size());
 
+  std::chrono::steady_clock::time_point begin =
+      std::chrono::steady_clock::now();
+
   for (const auto &[key, value] : points) {
     if (value.size()) {
-      auto ret = getSeedPose(value.data(), boardSize, imagerSize, 0.0254, 800);
+      auto ret = getSeedPose(value.data(), boardSize, imagerSize, 0.03, 1200);
 
-      if (0)
-        std::printf("Seed pose %s: r %f %f %f t %f %f %f\n", key.c_str(),
-                    ret.r.x, ret.r.y, ret.r.z, ret.t.x, ret.t.y, ret.t.z);
+      if (1)
+        // std::printf("Seed pose %s: r %f %f %f t %f %f %f\n", key.c_str(),
+        //             ret.r.x, ret.r.y, ret.r.z, ret.t.x, ret.t.y, ret.t.z);
 
-      // Append to the Big List of board corners/levels
-      observations_board.insert(observations_board.end(), value.begin(),
-                                value.end());
+        // Append to the Big List of board corners/levels
+        observations_board.insert(observations_board.end(), value.begin(),
+                                  value.end());
       // And list of pose seeds
       frames_rt_toref.push_back(ret);
     } else {
@@ -124,8 +125,15 @@ int homography_test() {
     }
   }
 
+  std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+  std::cout << "Seed took: "
+            << std::chrono::duration_cast<std::chrono::milliseconds>(end -
+                                                                     begin)
+                   .count()
+            << "[ms]" << std::endl;
+
   auto cal_result = mrcal_main(observations_board, frames_rt_toref, boardSize,
-                               0.0254, imagerSize);
+                               0.030, imagerSize, 1200);
 
   auto dt = std::chrono::steady_clock::now() - start;
   int dt_ms = dt.count();
@@ -135,7 +143,7 @@ int homography_test() {
   double max_error =
       *std::max_element(stats.residuals.begin(), stats.residuals.end());
 
-  if (0) {
+  if (1) {
     std::printf("\n===============================\n\n");
     std::printf("RMS Reprojection Error: %.2f pixels\n", stats.rms_error);
     std::printf("Worst residual (by measurement): %.1f pixels\n", max_error);
@@ -145,33 +153,37 @@ int homography_test() {
     std::printf("calobject_warp: [%f, %f]\n", stats.calobject_warp.x2,
                 stats.calobject_warp.y2);
     std::printf("dt, seeding + solve: %f ms\n", dt_ms / 1e6);
-    std::printf("Intrinsics [%lu]:\n", stats.intrinsics.size());
+    std::printf("Intrinsics [%lu]: ", stats.intrinsics.size());
     for (auto i : stats.intrinsics)
       std::printf("%f ", i);
     std::printf("\n");
   }
 
-  double fx = 100, fy = 100, cx = 50, cy = 20;
-  cv::Mat1d camMat = (Mat_<double>(3,3) << fx, 0, cx, 0, fy, cy, 0, 0, 1);
-  cv::Mat1d distCoeffs = (Mat_<double>(1,5) << 0.17802570252202954,-1.461379065131586,0.001019661566461145,0.0003215220840230439,2.7249642067580533);
+  // double fx = 100, fy = 100, cx = 50, cy = 20;
+  // cv::Mat1d camMat = (Mat_<double>(3, 3) << fx, 0, cx, 0, fy, cy, 0, 0, 1);
+  // cv::Mat1d distCoeffs =
+  //     (Mat_<double>(1, 5) << 0.17802570252202954, -1.461379065131586,
+  //      0.001019661566461145, 0.0003215220840230439, 2.7249642067580533);
 
-  undistort_mrcal(&inputs, &outputs, &camMat, &distCoeffs, CameraLensModel::LENSMODEL_OPENCV5, 0, 0, 0, 0);
+  // undistort_mrcal(&inputs, &outputs, &camMat, &distCoeffs,
+  //                 CameraLensModel::LENSMODEL_OPENCV5, 0, 0, 0, 0);
 
-  cv::Mat2d outputs_opencv = cv::Mat2d::zeros(inputs.size());
-  cv::undistortImagePoints(inputs, outputs_opencv, camMat, distCoeffs,
-                          TermCriteria(TermCriteria::MAX_ITER + TermCriteria::EPS, 50,
-                                                      1e-4));
+  // cv::Mat2d outputs_opencv = cv::Mat2d::zeros(inputs.size());
+  // cv::undistortImagePoints(
+  //     inputs, outputs_opencv, camMat, distCoeffs,
+  //     TermCriteria(TermCriteria::MAX_ITER + TermCriteria::EPS, 50, 1e-4));
 
-  std::cout << "cam mat\n" << camMat << std::endl;
-  std::cout << "dist\n" << distCoeffs << std::endl;
-  std::cout << "Inputs\n" << inputs << std::endl;
-  std::cout << "Outputs (mrcal)\n" << outputs << std::endl;
-  std::cout << "Outputs (opencv)\n" << outputs_opencv << std::endl;
+  // std::cout << "cam mat\n" << camMat << std::endl;
+  // std::cout << "dist\n" << distCoeffs << std::endl;
+  // std::cout << "Inputs\n" << inputs << std::endl;
+  // std::cout << "Outputs (mrcal)\n" << outputs << std::endl;
+  // std::cout << "Outputs (opencv)\n" << outputs_opencv << std::endl;
+
+  return 0;
 }
 
 int main() {
   // for (int i = 0; i < 1e6; i++) {
-    homography_test();
+  homography_test();
   // }
-
 }

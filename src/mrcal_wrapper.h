@@ -40,7 +40,6 @@ struct mrcal_result {
   std::vector<double> intrinsics;
   double rms_error;
   std::vector<double> residuals;
-  cholmod_sparse *Jt;
   mrcal_calobject_warp_t calobject_warp;
   int Noutliers_board;
   // TODO standard devs
@@ -48,10 +47,9 @@ struct mrcal_result {
   mrcal_result() = default;
   mrcal_result(bool success_, std::vector<double> intrinsics_,
                double rms_error_, std::vector<double> residuals_,
-               cholmod_sparse *Jt_, mrcal_calobject_warp_t calobject_warp_,
-               int Noutliers_board_)
+               mrcal_calobject_warp_t calobject_warp_, int Noutliers_board_)
       : success{success_}, intrinsics{std::move(intrinsics_)},
-        rms_error{rms_error_}, residuals{std::move(residuals_)}, Jt{Jt_},
+        rms_error{rms_error_}, residuals{std::move(residuals_)},
         calobject_warp{calobject_warp_}, Noutliers_board{Noutliers_board_} {}
   mrcal_result(mrcal_result &&) = delete;
   ~mrcal_result();
@@ -70,7 +68,9 @@ std::unique_ptr<mrcal_result> mrcal_main(
     // Chessboard size, in corners (not squares)
     cv::Size calobjectSize, double boardSpacing,
     // res, pixels
-    cv::Size cameraRes);
+    cv::Size cameraRes,
+    // focal length, in pixels
+    double focal_len_guess);
 
 enum class CameraLensModel {
   LENSMODEL_OPENCV5 = 0,

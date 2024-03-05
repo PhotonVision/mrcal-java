@@ -15,10 +15,6 @@ if (WITH_ASAN)
 endif ()
 
 
-# add_library(libvnlog SHARED IMPORTED)
-# set_target_properties(libvnlog PROPERTIES IMPORTED_LOCATION ${SOURCE_DIR}/libvnlog.so)
-
-
 find_package(JNI)
 if (JNI_FOUND)
     # Fixes odd AWT dependency
@@ -71,7 +67,7 @@ set(
     src/mrcal_wrapper.cpp
     src/mrcal_jni.cpp
     libdogleg/dogleg.c
-    mrcal/mrcal.c mrcal/cahvore.cc mrcal/poseutils-opencv.c mrcal/poseutils-uses-autodiff.cc mrcal/poseutils.c mrcal/mrcal-opencv.c 
+    mrcal/mrcal.c mrcal/cahvore.cc mrcal/poseutils-opencv.c mrcal/poseutils-uses-autodiff.cc mrcal/poseutils.c mrcal/poseutils-opencv.c mrcal/mrcal-opencv.c mrcal/triangulation.cc
 )
 
 
@@ -94,7 +90,7 @@ set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib )
 
 # Create shared library
 add_library(mrcal_jni SHARED ${INCLUDE_HPP} ${SRC_HPP} ${SRC_CPP})
-target_include_directories(mrcal_jni PUBLIC ${JNI_INCLUDE_DIRS} ${OPENCV_INCLUDE_PATH} mrcal libdogleg)
+target_include_directories(mrcal_jni SYSTEM PUBLIC ${JNI_INCLUDE_DIRS} ${OPENCV_INCLUDE_PATH} mrcal libdogleg)
 add_dependencies(mrcal_jni generate_minimath)
 
 IF (WIN32)
@@ -109,11 +105,11 @@ ENDIF()
 # Test script for checking our linker
 add_executable(mrcal_jni_test src/mrcal_test.cpp)
 target_link_libraries(mrcal_jni_test PUBLIC mrcal_jni)
-# target_include_directories(mrcal_jni_test PRIVATE ${VNLOG_INCLUDE_DIR})
+target_include_directories(mrcal_jni_test SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/vnlog)
 # add_dependencies(mrcal_jni_test )
 target_link_libraries(mrcal_jni_test PRIVATE
     ${OpenCV_LIBS}
-    # libvnlog
+    ${PROJECT_SOURCE_DIR}/vnlog/libvnlog.so
 )
 
 if (WITH_ASAN)

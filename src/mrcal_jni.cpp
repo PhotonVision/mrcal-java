@@ -153,7 +153,7 @@ Java_org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate_1camera
     total_frames_rt_toref.push_back(seed_pose);
   }
 
-  // Convert detection level to weights (we do a little memory manipulation)
+  // Convert detection level to weights
   for (auto &o : observations) {
     double &level = o.z;
     if (level < 0) {
@@ -164,7 +164,11 @@ Java_org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate_1camera
   }
 
   auto statsptr = mrcal_main(observations, total_frames_rt_toref, boardSize,
-                             static_cast<double>(boardSpacing), imagerSize);
+                             static_cast<double>(boardSpacing), imagerSize,
+                             focalLenGuessMM);
+  if (!statsptr) {
+    return nullptr;
+  }
   mrcal_result &stats = *statsptr;
 
   // Find the constructor. Reference:
