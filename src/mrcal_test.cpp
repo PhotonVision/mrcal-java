@@ -51,7 +51,7 @@ int homography_test() {
   // Size boardSize = {10, 10};
   // Size imagerSize = {1600, 896};
   std::FILE *fp =
-      std::fopen("/home/matt/mrcal_debug_tmp/output_will/corners.vnl",
+      std::fopen("/home/matt/mrcal_debug_tmp/output_will/images-trimmed/corners.vnl",
                  "r");
 
   if (fp == NULL)
@@ -107,9 +107,9 @@ int homography_test() {
 
   for (const auto &[key, value] : points) {
     if (value.size()) {
-      auto ret = getSeedPose(value.data(), boardSize, imagerSize, 0.0254, 800);
+      auto ret = getSeedPose(value.data(), boardSize, imagerSize, 0.03, 1200);
 
-      if (0)
+      if (1)
         std::printf("Seed pose %s: r %f %f %f t %f %f %f\n", key.c_str(),
                     ret.r.x, ret.r.y, ret.r.z, ret.t.x, ret.t.y, ret.t.z);
 
@@ -124,7 +124,7 @@ int homography_test() {
   }
 
   auto cal_result = mrcal_main(observations_board, frames_rt_toref, boardSize,
-                               0.0254, imagerSize, 1500);
+                               0.030, imagerSize, 1200);
 
   auto dt = std::chrono::steady_clock::now() - start;
   int dt_ms = dt.count();
@@ -134,7 +134,7 @@ int homography_test() {
   double max_error =
       *std::max_element(stats.residuals.begin(), stats.residuals.end());
 
-  if (0) {
+  if (1) {
     std::printf("\n===============================\n\n");
     std::printf("RMS Reprojection Error: %.2f pixels\n", stats.rms_error);
     std::printf("Worst residual (by measurement): %.1f pixels\n", max_error);
@@ -144,7 +144,7 @@ int homography_test() {
     std::printf("calobject_warp: [%f, %f]\n", stats.calobject_warp.x2,
                 stats.calobject_warp.y2);
     std::printf("dt, seeding + solve: %f ms\n", dt_ms / 1e6);
-    std::printf("Intrinsics [%lu]:\n", stats.intrinsics.size());
+    std::printf("Intrinsics [%lu]: ", stats.intrinsics.size());
     for (auto i : stats.intrinsics)
       std::printf("%f ", i);
     std::printf("\n");
@@ -169,6 +169,8 @@ int homography_test() {
   // std::cout << "Inputs\n" << inputs << std::endl;
   // std::cout << "Outputs (mrcal)\n" << outputs << std::endl;
   // std::cout << "Outputs (opencv)\n" << outputs_opencv << std::endl;
+
+  return 0;
 }
 
 int main() {

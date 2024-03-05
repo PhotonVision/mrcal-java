@@ -350,8 +350,15 @@ mrcal_pose_t getSeedPose(const mrcal_point3_t *c_observations_board_pool,
   vector<Point3f> objectPoints3;
   for (auto a : objectPoints)
     objectPoints3.push_back(Point3f(a.x, a.y, 0));
+
+  for (size_t i = 0; i < imagePoints.size(); i++) {
+    auto o = objectPoints3[i];
+    auto im = imagePoints[i];
+    std::cout << o << " | " << im << std::endl;
+  }
+
   solvePnP(objectPoints3, imagePoints, cameraMatrix, distCoeffs, rvec, tvec,
-           false, SOLVEPNP_EPNP);
+           false);
 
   return mrcal_pose_t{.r = {.x = rvec(0), .y = rvec(1), .z = rvec(2)},
                       .t = {.x = tvec(0), .y = tvec(1), .z = tvec(2)}};
@@ -385,12 +392,12 @@ std::unique_ptr<mrcal_result> mrcal_main(
     std::vector<double> intrinsics = {focal_length_guess, focal_length_guess,
                                       cx, cy};
 
-    std::cout << "Initial solve (Geometry only)" << std::endl;
+    std::cout << "Initial solve (geometry only)" << std::endl;
 
     mrcal_problem_selections_t options = construct_problem_selections(
         {.do_optimize_intrinsics_core = false,
          .do_optimize_intrinsics_distortions = false,
-         .do_optimize_extrinsics = true,
+         .do_optimize_extrinsics = false,
          .do_optimize_frames = true,
          .do_optimize_calobject_warp = false,
          .do_apply_regularization = false,
@@ -408,12 +415,12 @@ std::unique_ptr<mrcal_result> mrcal_main(
 
   {
     std::cout
-        << "Initial solve (Geometry and LENSMODEL_STEREOGRAPHIC core only)"
+        << "Initial solve (geometry and LENSMODEL_STEREOGRAPHIC core only)"
         << std::endl;
     mrcal_problem_selections_t options = construct_problem_selections(
         {.do_optimize_intrinsics_core = true,
          .do_optimize_intrinsics_distortions = true,
-         .do_optimize_extrinsics = true,
+         .do_optimize_extrinsics = false,
          .do_optimize_frames = true,
          .do_optimize_calobject_warp = false,
          .do_apply_regularization = false,
@@ -461,7 +468,7 @@ std::unique_ptr<mrcal_result> mrcal_main(
     std::copy(seedDistortions.begin(), seedDistortions.end(),
               intrinsics.begin() + result->intrinsics.size());
 
-    std::cout << "Optimizing everything from seeded intrinsics" << std::endl;
+    std::cout << "Optimizing everything except board warp from seeded intrinsics" << std::endl;
     mrcal_problem_selections_t options = construct_problem_selections(
         {.do_optimize_intrinsics_core = true,
          .do_optimize_intrinsics_distortions = true,
@@ -535,7 +542,7 @@ bool undistort_mrcal(const cv::Mat *src, cv::Mat *dst, const cv::Mat *cameraMat,
     return false;
   }
 
-  if (!(dst->cols == 2 && dst->cols == 2 && dst->rows == dst->rows)) {
+  if (!(dst->cols == 2 && dst->cols == 2)) {
     std::cerr << "Bad input array size\n";
     return false;
   }

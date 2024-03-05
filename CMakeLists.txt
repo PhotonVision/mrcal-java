@@ -8,7 +8,7 @@ option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set (WITH_ASAN ON)
+set (WITH_ASAN OFF)
 
 if (WITH_ASAN)
     add_compile_options(-fsanitize=address -g -Wall -fsanitize=undefined)
@@ -90,7 +90,7 @@ set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib )
 
 # Create shared library
 add_library(mrcal_jni SHARED ${INCLUDE_HPP} ${SRC_HPP} ${SRC_CPP})
-target_include_directories(mrcal_jni PUBLIC ${JNI_INCLUDE_DIRS} ${OPENCV_INCLUDE_PATH} mrcal libdogleg)
+target_include_directories(mrcal_jni SYSTEM PUBLIC ${JNI_INCLUDE_DIRS} ${OPENCV_INCLUDE_PATH} mrcal libdogleg)
 add_dependencies(mrcal_jni generate_minimath)
 
 IF (WIN32)
@@ -105,7 +105,7 @@ ENDIF()
 # Test script for checking our linker
 add_executable(mrcal_jni_test src/mrcal_test.cpp)
 target_link_libraries(mrcal_jni_test PUBLIC mrcal_jni)
-target_include_directories(mrcal_jni_test PRIVATE ${PROJECT_SOURCE_DIR}/vnlog)
+target_include_directories(mrcal_jni_test SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/vnlog)
 # add_dependencies(mrcal_jni_test )
 target_link_libraries(mrcal_jni_test PRIVATE
     ${OpenCV_LIBS}
