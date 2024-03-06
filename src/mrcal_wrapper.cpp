@@ -348,11 +348,6 @@ mrcal_pose_t getSeedPose(const mrcal_point3_t *c_observations_board_pool,
   for (auto a : objectPoints)
     objectPoints3.push_back(Point3f(a.x, a.y, 0));
 
-  // for (auto& o : objectPoints) std::cout << o << std::endl;
-  // for (auto& i : imagePoints) std::cout << i << std::endl;
-  // std::cout << "cam mat\n" << cameraMatrix << std::endl;
-  // std::cout << "distortion: " << distCoeffs << std::endl;
-
   solvePnP(objectPoints3, imagePoints, cameraMatrix, distCoeffs, rvec, tvec,
            false, SOLVEPNP_ITERATIVE);
 
