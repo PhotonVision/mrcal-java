@@ -77,6 +77,11 @@ public class MrCalJNI {
             for (var c : corners) {
                 float level = 1.0f; // if we have mrgingham, use level from that. Otherwise, hard-coded to 1
 
+                if(c.x == -1 && c.y ==-1) // (-1,-1) is impossible and we should ignore this point.
+                {
+                    level = -1.0f;
+                }
+
                 observations[i * 3 + 0] = c.x;
                 observations[i * 3 + 1] = c.y;
                 observations[i * 3 + 2] = level;
