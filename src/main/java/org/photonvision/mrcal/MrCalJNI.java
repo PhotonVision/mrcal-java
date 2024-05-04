@@ -17,11 +17,10 @@
 
 package org.photonvision.mrcal;
 
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.opencv.core.MatOfFloat;
 import org.opencv.core.MatOfPoint2f;
 
 public class MrCalJNI {
@@ -37,6 +36,7 @@ public class MrCalJNI {
         public MrCalResult(boolean success) {
             this.success = success;
         }
+
         public MrCalResult(
                 boolean success, double[] intrinsics, double rms_error, double[] residuals, double warp_x,
                 double warp_y, int Noutliers) {
@@ -62,38 +62,49 @@ public class MrCalJNI {
             int boardWidth, int boardHeight, double boardSpacing,
             int imageWidth, int imageHeight, double focalLen);
 
-    public static native boolean undistort_mrcal(long srcMat, long dstMat, long cameraMat, long distCoeffsMat, int lensModelOrdinal, int order, int Nx, int Ny, int fov_x_deg);
+    public static native boolean undistort_mrcal(long srcMat, long dstMat, long cameraMat, long distCoeffsMat,
+            int lensModelOrdinal, int order, int Nx, int Ny, int fov_x_deg);
 
-    public static MrCalResult calibrateCamera(
-            List<MatOfPoint2f> board_corners,
-            int boardWidth, int boardHeight, double boardSpacing,
-            int imageWidth, int imageHeight, double focalLen) {
-        double[] observations = new double[boardWidth * boardHeight * 3 * board_corners.size()];
+            public static MrCalResult calibrateCamera(
+                List<MatOfPoint2f> board_corners,
+                List<MatOfFloat> board_corner_levels,
+                int boardWidth, int boardHeight, double boardSpacing,
+                int imageWidth, int imageHeight, double focalLen) {
+            double[] observations = new double[boardWidth * boardHeight * 3 * board_corners.size()];
 
-        int i = 0;
-        for (var board : board_corners) {
-            var corners = board.toArray();
-            // Assume that we're correct in terms of row/column major-ness (lol)
-            for (var c : corners) {
-                float level = 1.0f; // if we have mrgingham, use level from that. Otherwise, hard-coded to 1
-
-                if(c.x == -1 && c.y ==-1) // (-1,-1) is impossible and we should ignore this point.
-                {
-                    level = -1.0f;
-                }
-
-                observations[i * 3 + 0] = c.x;
-                observations[i * 3 + 1] = c.y;
-                observations[i * 3 + 2] = level;
-
-                i += 1;
+            if (board_corners.size() != board_corner_levels.size()) {
+                return new MrCalResult(false);
             }
-        }
 
-        if (i * 3 != observations.length) {
-            return new MrCalResult(false);
-        }
+            int i = 0;
+            for (int b = 0; b < board_corners.size(); b++) {
+                var board = board_corners.get(b);
+                var levels = board_corner_levels.get(b).toArray();
+                var corners = board.toArray();
+                // Assume that we're correct in terms of row/column major-ness (lol)
+                for (int c = 0; c < corners.length; c++) {
+                    if (corners.length != levels.length) {
+                        return new MrCalResult(false);
+                    }
+                    var corner = corners[c];
+                    float level = levels[c];
 
-        return mrcal_calibrate_camera(observations, boardWidth, boardHeight, boardSpacing, imageWidth, imageHeight, focalLen);
-    }
+                    observations[i * 3 + 0] = corner.x;
+                    observations[i * 3 + 1] = corner.y;
+                    observations[i * 3 + 2] = level;
+
+                    i += 1;
+                }
+            }
+
+            if (i * 3 != observations.length)
+
+            {
+                return new MrCalResult(false);
+            }
+
+            return
+
+            mrcal_calibrate_camera(observations, boardWidth, boardHeight, boardSpacing, imageWidth, imageHeight, focalLen);
+        }
 }
