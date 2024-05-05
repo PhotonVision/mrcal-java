@@ -72,7 +72,7 @@ public class MrCalJNI {
             int imageWidth, int imageHeight, double focalLen) {
         double[] observations = new double[boardWidth * boardHeight * 3 * board_corners.size()];
 
-        if (!(board_corners.size() == board_corner_levels.size() && board_corners.size() == boardWidth * boardHeight)) {
+        if (!(board_corners.size() == board_corner_levels.size())) {
             return new MrCalResult(false);
         }
 
