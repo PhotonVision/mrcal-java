@@ -65,49 +65,45 @@ public class MrCalJNI {
     public static native boolean undistort_mrcal(long srcMat, long dstMat, long cameraMat, long distCoeffsMat,
             int lensModelOrdinal, int order, int Nx, int Ny, int fov_x_deg);
 
-            public static MrCalResult calibrateCamera(
-                List<MatOfPoint2f> board_corners,
-                List<MatOfFloat> board_corner_levels,
-                int boardWidth, int boardHeight, double boardSpacing,
-                int imageWidth, int imageHeight, double focalLen) {
-            double[] observations = new double[boardWidth * boardHeight * 3 * board_corners.size()];
+    public static MrCalResult calibrateCamera(
+            List<MatOfPoint2f> board_corners,
+            List<MatOfFloat> board_corner_levels,
+            int boardWidth, int boardHeight, double boardSpacing,
+            int imageWidth, int imageHeight, double focalLen) {
+        double[] observations = new double[boardWidth * boardHeight * 3 * board_corners.size()];
 
-            if (board_corners.size() != board_corner_levels.size() && board_corners.size() == boardWidth*boardHeight) {
-                return new MrCalResult(false);
-            }
-
-            int i = 0;
-            for (int b = 0; b < board_corners.size(); b++) {
-                var board = board_corners.get(b);
-                var levels = board_corner_levels.get(b).toArray();
-                var corners = board.toArray();
-                
-                if (corners.length != levels.length && corners.length == boardWidth*boardHeight) {
-                    return new MrCalResult(false);
-                }
-
-                // Assume that we're correct in terms of row/column major-ness (lol)
-                for (int c = 0; c < corners.length; c++) {
-
-                    var corner = corners[c];
-                    float level = levels[c];
-
-                    observations[i * 3 + 0] = corner.x;
-                    observations[i * 3 + 1] = corner.y;
-                    observations[i * 3 + 2] = level;
-
-                    i += 1;
-                }
-            }
-
-            if (i * 3 != observations.length)
-
-            {
-                return new MrCalResult(false);
-            }
-
-            return
-
-            mrcal_calibrate_camera(observations, boardWidth, boardHeight, boardSpacing, imageWidth, imageHeight, focalLen);
+        if (!(board_corners.size() == board_corner_levels.size() && board_corners.size() == boardWidth * boardHeight)) {
+            return new MrCalResult(false);
         }
+
+        int i = 0;
+        for (int b = 0; b < board_corners.size(); b++) {
+            var board = board_corners.get(b);
+            var levels = board_corner_levels.get(b).toArray();
+            var corners = board.toArray();
+
+            if (!(corners.length == levels.length && corners.length == boardWidth * boardHeight)) {
+                return new MrCalResult(false);
+            }
+
+            // Assume that we're correct in terms of row/column major-ness (lol)
+            for (int c = 0; c < corners.length; c++) {
+
+                var corner = corners[c];
+                float level = levels[c];
+
+                observations[i * 3 + 0] = corner.x;
+                observations[i * 3 + 1] = corner.y;
+                observations[i * 3 + 2] = level;
+
+                i += 1;
+            }
+        }
+
+        if (i * 3 != observations.length){
+            return new MrCalResult(false);
+        }
+
+        return mrcal_calibrate_camera(observations, boardWidth, boardHeight, boardSpacing, imageWidth, imageHeight, focalLen);
+    }
 }
