@@ -72,7 +72,7 @@ public class MrCalJNI {
                 int imageWidth, int imageHeight, double focalLen) {
             double[] observations = new double[boardWidth * boardHeight * 3 * board_corners.size()];
 
-            if (board_corners.size() != board_corner_levels.size()) {
+            if (board_corners.size() != board_corner_levels.size() && board_corners.size() == boardWidth*boardHeight) {
                 return new MrCalResult(false);
             }
 
@@ -81,11 +81,14 @@ public class MrCalJNI {
                 var board = board_corners.get(b);
                 var levels = board_corner_levels.get(b).toArray();
                 var corners = board.toArray();
+                
+                if (corners.length != levels.length && corners.length == boardWidth*boardHeight) {
+                    return new MrCalResult(false);
+                }
+
                 // Assume that we're correct in terms of row/column major-ness (lol)
                 for (int c = 0; c < corners.length; c++) {
-                    if (corners.length != levels.length) {
-                        return new MrCalResult(false);
-                    }
+
                     var corner = corners[c];
                     float level = levels[c];
 
