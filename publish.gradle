@@ -4,8 +4,11 @@ def nativeName = wpilibTools.platformMapper.currentPlatform.platformName;
 def artifactGroupId = 'org.photonvision'
 def baseArtifactId = "photon-mrcal"
 
+def jniType = project.findProperty("PublishType") ?: "";
+println("Building with JNI publish type: " + jniType);
+
 task nativeLibraryJar(type: Jar, dependsOn: copyNativeLibrary) {
-    archiveClassifier = nativeName
+    archiveClassifier = nativeName + jniType
     from outputsFolder
 }
 build.dependsOn nativeLibraryJar
