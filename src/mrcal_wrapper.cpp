@@ -334,9 +334,8 @@ mrcal_pose_t getSeedPose(const mrcal_point3_t *c_observations_board_pool,
                   &model, intrinsics);
 
     std::transform(mrcal_imagepts.begin(), mrcal_imagepts.end(),
-                   imagePoints.begin(), [](const auto &pt) {
-                     return Point2d{pt.x, pt.y};
-                   });
+                   imagePoints.begin(),
+                   [](const auto &pt) { return Point2d{pt.x, pt.y}; });
   }
 
   // Initial guess at intrinsics

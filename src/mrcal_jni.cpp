@@ -19,11 +19,10 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <exception>
 #include <span>
 #include <stdexcept>
 #include <vector>
-
-#include <exception>
 
 #include "mrcal_wrapper.h"
 
@@ -103,15 +102,23 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
 
 } // extern "C"
 
-static std::string what(const std::exception_ptr &eptr = std::current_exception())
-{
-    if (!eptr) { throw std::bad_exception(); }
+static std::string
+what(const std::exception_ptr &eptr = std::current_exception()) {
+  if (!eptr) {
+    throw std::bad_exception();
+  }
 
-    try { std::rethrow_exception(eptr); }
-    catch (const std::exception &e) { return e.what()   ; }
-    catch (const std::string    &e) { return e          ; }
-    catch (const char           *e) { return e          ; }
-    catch (...)                     { return "who knows"; }
+  try {
+    std::rethrow_exception(eptr);
+  } catch (const std::exception &e) {
+    return e.what();
+  } catch (const std::string &e) {
+    return e;
+  } catch (const char *e) {
+    return e;
+  } catch (...) {
+    return "who knows";
+  }
 }
 
 /*
@@ -126,99 +133,96 @@ Java_org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate_1camera
    jdouble focalLenGuessMM)
 {
   try {
+    // Pull out arrays. We rely on data being packed and aligned to make this
+    // work! Observations should be [x, y, level]
+    std::span<mrcal_point3_t> observations{
+        reinterpret_cast<mrcal_point3_t *>(
+            env->GetDoubleArrayElements(observations_board, 0)),
+        env->GetArrayLength(observations_board) / 3lu};
 
-
-  // Pull out arrays. We rely on data being packed and aligned to make this
-  // work! Observations should be [x, y, level]
-  std::span<mrcal_point3_t> observations{
-      reinterpret_cast<mrcal_point3_t *>(
-          env->GetDoubleArrayElements(observations_board, 0)),
-      env->GetArrayLength(observations_board) / 3lu};
-
-  size_t points_in_board = boardWidth * boardHeight;
-  if (observations.size() % points_in_board != 0) {
-    jclass exception_class = env->FindClass("java/lang/Exception");
-    if (exception_class && env) {
-      (env)->ExceptionClear();
-      env->ThrowNew(exception_class,
-                    "Observation list length does not match board size!");
-      return {};
-    } else {
-      // ????
-      std::cerr << "Observation list length does not match board size!\n";
+    size_t points_in_board = boardWidth * boardHeight;
+    if (observations.size() % points_in_board != 0) {
+      jclass exception_class = env->FindClass("java/lang/Exception");
+      if (exception_class && env) {
+        (env)->ExceptionClear();
+        env->ThrowNew(exception_class,
+                      "Observation list length does not match board size!");
+        return {};
+      } else {
+        // ????
+        std::cerr << "Observation list length does not match board size!\n";
+      }
     }
-  }
 
-  size_t boards_observed = observations.size() / points_in_board;
+    size_t boards_observed = observations.size() / points_in_board;
 
-  const auto boardSize = cv::Size{boardWidth, boardHeight};
-  const auto imagerSize = cv::Size{imageWidth, imageHeight};
+    const auto boardSize = cv::Size{boardWidth, boardHeight};
+    const auto imagerSize = cv::Size{imageWidth, imageHeight};
 
-  // down big list of observations/extrinsic guesses (one per board object)
-  std::vector<mrcal_pose_t> total_frames_rt_toref;
+    // down big list of observations/extrinsic guesses (one per board object)
+    std::vector<mrcal_pose_t> total_frames_rt_toref;
 
-  for (size_t i = 0; i < boards_observed; i++) {
-    auto seed_pose =
-        getSeedPose(&(*observations.begin()) + (i * points_in_board), boardSize,
-                    imagerSize, boardSpacing, focalLenGuessMM);
-    // std::printf("Seed pose %lu: r %f %f %f t %f %f %f\n", i, seed_pose.r.x,
-    //             seed_pose.r.y, seed_pose.r.z, seed_pose.t.x, seed_pose.t.y,
-    //             seed_pose.t.z);
+    for (size_t i = 0; i < boards_observed; i++) {
+      auto seed_pose =
+          getSeedPose(&(*observations.begin()) + (i * points_in_board),
+                      boardSize, imagerSize, boardSpacing, focalLenGuessMM);
+      // std::printf("Seed pose %lu: r %f %f %f t %f %f %f\n", i, seed_pose.r.x,
+      //             seed_pose.r.y, seed_pose.r.z, seed_pose.t.x, seed_pose.t.y,
+      //             seed_pose.t.z);
 
-    // Add to seed poses
-    total_frames_rt_toref.push_back(seed_pose);
-  }
-
-  // Convert detection level to weights
-  for (auto &o : observations) {
-    double &level = o.z;
-    if (level < 0) {
-      o.z = -1;
-    } else {
-      o.z = std::pow(0.5, level);
+      // Add to seed poses
+      total_frames_rt_toref.push_back(seed_pose);
     }
-  }
 
-  auto statsptr = mrcal_main(observations, total_frames_rt_toref, boardSize,
-                             static_cast<double>(boardSpacing), imagerSize,
-                             focalLenGuessMM);
-  if (!statsptr) {
-    return nullptr;
-  }
-  mrcal_result &stats = *statsptr;
+    // Convert detection level to weights
+    for (auto &o : observations) {
+      double &level = o.z;
+      if (level < 0) {
+        o.z = -1;
+      } else {
+        o.z = std::pow(0.5, level);
+      }
+    }
 
-  // Find the constructor. Reference:
-  // https://www.microfocus.com/documentation/extend-acucobol/925/BKITITJAVAS027.html
-  static jmethodID constructor =
-      env->GetMethodID(detectionClass, "<init>", "(Z[DD[DDDI)V");
-  if (!constructor) {
-    return nullptr;
-  }
+    auto statsptr = mrcal_main(observations, total_frames_rt_toref, boardSize,
+                               static_cast<double>(boardSpacing), imagerSize,
+                               focalLenGuessMM);
+    if (!statsptr) {
+      return nullptr;
+    }
+    mrcal_result &stats = *statsptr;
 
-  size_t Nintrinsics = stats.intrinsics.size();
-  size_t Nresid = stats.residuals.size();
+    // Find the constructor. Reference:
+    // https://www.microfocus.com/documentation/extend-acucobol/925/BKITITJAVAS027.html
+    static jmethodID constructor =
+        env->GetMethodID(detectionClass, "<init>", "(Z[DD[DDDI)V");
+    if (!constructor) {
+      return nullptr;
+    }
 
-  jdoubleArray intrinsics =
-      MakeJDoubleArray(env, stats.intrinsics.data(), Nintrinsics);
-  jdoubleArray residuals =
-      MakeJDoubleArray(env, stats.residuals.data(), Nresid);
-  jboolean success = stats.success;
-  jdouble rms_err = stats.rms_error;
-  jdouble warp_x = stats.calobject_warp.x2;
-  jdouble warp_y = stats.calobject_warp.y2;
-  jint Noutliers = stats.Noutliers_board;
+    size_t Nintrinsics = stats.intrinsics.size();
+    size_t Nresid = stats.residuals.size();
 
-  // Actually call the constructor (TODO)
-  auto ret = env->NewObject(detectionClass, constructor, success, intrinsics,
-                            rms_err, residuals, warp_x, warp_y, Noutliers);
+    jdoubleArray intrinsics =
+        MakeJDoubleArray(env, stats.intrinsics.data(), Nintrinsics);
+    jdoubleArray residuals =
+        MakeJDoubleArray(env, stats.residuals.data(), Nresid);
+    jboolean success = stats.success;
+    jdouble rms_err = stats.rms_error;
+    jdouble warp_x = stats.calobject_warp.x2;
+    jdouble warp_y = stats.calobject_warp.y2;
+    jint Noutliers = stats.Noutliers_board;
 
-  return ret;
+    // Actually call the constructor (TODO)
+    auto ret = env->NewObject(detectionClass, constructor, success, intrinsics,
+                              rms_err, residuals, warp_x, warp_y, Noutliers);
 
+    return ret;
   } catch (...) {
     std::cerr << "Calibration exception: " << what() << std::endl;
 
     static char buff[512];
-    strcpy(buff, what().c_str());
+    std::strcpy(buff, what().c_str());
     env->ThrowNew(env->FindClass("java/lang/Exception"), buff);
   }
 }
