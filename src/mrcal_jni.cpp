@@ -23,6 +23,8 @@
 #include <stdexcept>
 #include <vector>
 
+#include <exception>
+
 #include "mrcal_wrapper.h"
 
 // JClass helper from wpilib
@@ -101,6 +103,17 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
 
 } // extern "C"
 
+static std::string what(const std::exception_ptr &eptr = std::current_exception())
+{
+    if (!eptr) { throw std::bad_exception(); }
+
+    try { std::rethrow_exception(eptr); }
+    catch (const std::exception &e) { return e.what()   ; }
+    catch (const std::string    &e) { return e          ; }
+    catch (const char           *e) { return e          ; }
+    catch (...)                     { return "who knows"; }
+}
+
 /*
  * Class:     org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate
  * Method:    1camera
@@ -112,6 +125,9 @@ Java_org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate_1camera
    jint boardHeight, jdouble boardSpacing, jint imageWidth, jint imageHeight,
    jdouble focalLenGuessMM)
 {
+  try {
+
+
   // Pull out arrays. We rely on data being packed and aligned to make this
   // work! Observations should be [x, y, level]
   std::span<mrcal_point3_t> observations{
@@ -197,6 +213,14 @@ Java_org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate_1camera
                             rms_err, residuals, warp_x, warp_y, Noutliers);
 
   return ret;
+
+  } catch (...) {
+    std::cerr << "Calibration exception: " << what() << std::endl;
+
+    static char buff[512];
+    strcpy(buff, what().c_str());
+    env->ThrowNew(env->FindClass("java/lang/Exception"), buff);
+  }
 }
 
 /*
