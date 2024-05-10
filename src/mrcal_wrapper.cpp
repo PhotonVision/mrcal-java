@@ -308,8 +308,6 @@ mrcal_pose_t getSeedPose(const mrcal_point3_t *c_observations_board_pool,
       if (corner.z >= 0) {
         imagePoints.emplace_back(corner.x, corner.y);
         objectPoints.push_back(Point3f(j * squareSize, i * squareSize, 0));
-      } else {
-        std::printf("Ignoring %i,%i!\n", i, j);
       }
     }
   }
