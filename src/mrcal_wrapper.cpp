@@ -236,6 +236,14 @@ struct MrcalSolveOptions {
 };
 
 // lifted from mrcal-pywrap.c. Restrict a given selection to only valid options
+// License for mrcal-pywrap.c:
+// Copyright (c) 2017-2023 California Institute of Technology ("Caltech"). U.S.
+// Government sponsorship acknowledged. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
 static mrcal_problem_selections_t
 construct_problem_selections(MrcalSolveOptions s, int Ncameras_intrinsics,
                              int Ncameras_extrinsics, int Nframes,
@@ -360,6 +368,14 @@ mrcal_result::~mrcal_result() {
   return;
 }
 
+// Code taken from mrcal, license:
+// Copyright (c) 2017-2023 California Institute of Technology ("Caltech"). U.S.
+// Government sponsorship acknowledged. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
 std::unique_ptr<mrcal_result> mrcal_main(
     // List, depth is ordered array observation[N frames, object_height,
     // object_width] = [x,y, weight] weight<0 means ignored)
