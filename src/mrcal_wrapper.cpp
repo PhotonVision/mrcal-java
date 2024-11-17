@@ -115,8 +115,7 @@ static std::unique_ptr<mrcal_result> mrcal_calibrate(
 
   // Copy from board/point pool above, using some code borrowed from
   // mrcal-pywrap
-  std::vector<mrcal_observation_board_t> observations_board_data;
-  observations_board_data.resize(Nobservations_board);
+  std::vector<mrcal_observation_board_t> observations_board_data(Nobservations_board);
   auto c_observations_board = observations_board_data.data();
   // Try to make sure we don't accidentally make a zero-length array or
   // something stupid
@@ -178,12 +177,10 @@ static std::unique_ptr<mrcal_result> mrcal_calibrate(
   // call optimize
 
   // Residuals
-  std::vector<double> b_packed_final;
-  b_packed_final.resize(Nstate);
+  std::vector<double> b_packed_final(Nstate);
   auto c_b_packed_final = b_packed_final.data();
 
-  std::vector<double> x_final;
-  x_final.resize(Nmeasurements);
+  std::vector<double> x_final(Nmeasurements);
   auto c_x_final = x_final.data();
 
   // Seeds
