@@ -166,7 +166,7 @@ jobs:
         path: ${{ github.workspace }}/build/libs/*.jar
 
   release:
-    needs: [build-host, build-raspi]
+    needs: [build-host, build-raspi, build-windows]
     runs-on: ubuntu-22.04
     steps:
       # Download literally every single artifact. This also downloads client and docs,
