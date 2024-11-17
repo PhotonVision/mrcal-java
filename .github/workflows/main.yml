@@ -68,7 +68,7 @@ jobs:
         ARTIFACTORY_API_KEY: ${{ secrets.ARTIFACTORY_API_KEY }}
       if: github.event_name == 'push'
 
-    - uses: actions/upload-artifact@master
+    - uses: actions/upload-artifact@v4
       with:
         name: libmrcal-jar-${{ matrix.arch-name }}
         path: |
@@ -103,7 +103,7 @@ jobs:
       env:
         ARTIFACTORY_API_KEY: ${{ secrets.ARTIFACTORY_API_KEY }}
 
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       name: Upload jar
       with:
         name: libmrcal-jar-pi
@@ -160,18 +160,18 @@ jobs:
         ARTIFACTORY_API_KEY: ${{ secrets.ARTIFACTORY_API_KEY }}
       if: github.event_name == 'push'
 
-    - uses: actions/upload-artifact@master
+    - uses: actions/upload-artifact@v4
       with:
         name: libmrcal-jar-windowsx64
         path: ${{ github.workspace }}/build/libs/*.jar
 
   release:
-    needs: [build-host, build-raspi]
+    needs: [build-host, build-raspi, build-windows]
     runs-on: ubuntu-22.04
     steps:
       # Download literally every single artifact. This also downloads client and docs,
       # but the filtering below won't pick these up (I hope)
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v4
 
       - run: find
 
@@ -186,7 +186,7 @@ jobs:
         if: github.event_name == 'push'
 
       # Push to actual release, if tagged
-      - uses: softprops/action-gh-release@v1
+      - uses: softprops/action-gh-release@v2
         with:
           files: |
             **/*
