@@ -5,6 +5,21 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "(gdb) Attach",
+      "type": "cppdbg",
+      "request": "attach",
+      "program": "/home/matt/github/mrcal-java/cmake_build/lib/libmrcal_jni.so",
+      "processId": "${command:pickProcess}",
+      "MIMode": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ]
+    },
+    {
       "name": "Python debug calibrate cameras",
       "type": "debugpy",
       "request": "launch",
@@ -12,8 +27,19 @@
       "console": "integratedTerminal",
       "cwd": "/home/matt/mrcal_debug_tmp/output_will/images-trimmed",
       "args": [
-        "--corners-cache","corners.vnl","--lensmodel","LENSMODEL_OPENCV8","--focal","1200",
-        "--object-spacing","0.03","--object-width-n","18","--object-height-n","13","*.png"
+        "--corners-cache",
+        "corners.vnl",
+        "--lensmodel",
+        "LENSMODEL_OPENCV8",
+        "--focal",
+        "1200",
+        "--object-spacing",
+        "0.03",
+        "--object-width-n",
+        "18",
+        "--object-height-n",
+        "13",
+        "*.png"
       ],
       "justMyCode": false
     },

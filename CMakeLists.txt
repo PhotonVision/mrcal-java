@@ -14,7 +14,6 @@ if (WITH_ASAN)
     add_compile_options(-fsanitize=address -g -Wall -fsanitize=undefined)
 endif ()
 
-
 find_package(JNI)
 if (JNI_FOUND)
     # Fixes odd AWT dependency

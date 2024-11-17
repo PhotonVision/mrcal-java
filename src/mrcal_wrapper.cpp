@@ -1,6 +1,6 @@
 /*
  * Copyright (C) Photon Vision.
- * 
+ *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted.
  *
@@ -115,7 +115,9 @@ static std::unique_ptr<mrcal_result> mrcal_calibrate(
 
   // Copy from board/point pool above, using some code borrowed from
   // mrcal-pywrap
-  mrcal_observation_board_t c_observations_board[Nobservations_board];
+  std::vector<mrcal_observation_board_t> observations_board_data;
+  observations_board_data.resize(Nobservations_board);
+  auto c_observations_board = observations_board_data.data();
   // Try to make sure we don't accidentally make a zero-length array or
   // something stupid
   mrcal_observation_point_t
@@ -176,8 +178,13 @@ static std::unique_ptr<mrcal_result> mrcal_calibrate(
   // call optimize
 
   // Residuals
-  double c_b_packed_final[Nstate];
-  double c_x_final[Nmeasurements];
+  std::vector<double> b_packed_final;
+  b_packed_final.resize(Nstate);
+  auto c_b_packed_final = b_packed_final.data();
+
+  std::vector<double> x_final;
+  x_final.resize(Nmeasurements);
+  auto c_x_final = x_final.data();
 
   // Seeds
   double *c_intrinsics = intrinsics.data();
