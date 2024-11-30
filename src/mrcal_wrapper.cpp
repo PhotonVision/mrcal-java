@@ -40,7 +40,7 @@ public:
 };
 static CholmodCtx cctx;
 
-#define BARF(args...) std::fprintf(stderr, ##args)
+#define BARF(...) std::fprintf(stderr, __VA_ARGS_)
 
 // forward declarations for functions borrowed from mrcal-pywrap
 static mrcal_problem_selections_t construct_problem_selections(
@@ -54,11 +54,10 @@ bool lensmodel_one_validate_args(mrcal_lensmodel_t *mrcal_lensmodel,
                                  std::vector<double> intrinsics,
                                  bool do_check_layout);
 
-// Empty vector just to pass in so it's not NULL?
-mrcal_point3_t observations_point[0];
-mrcal_pose_t
-    extrinsics_rt_fromref[0]; // Always zero for single camera, it seems?
-mrcal_point3_t points[0];     // Seems to always to be None for single camera?
+mrcal_point3_t* observations_point = nullptr;
+mrcal_pose_t*
+    extrinsics_rt_fromref = nullptr; // Always zero for single camera, it seems?
+mrcal_point3_t* points = nullptr;     // Seems to always to be None for single camera?
 
 static std::unique_ptr<mrcal_result> mrcal_calibrate(
     // List, depth is ordered array observation[N frames, object_height,
@@ -119,8 +118,10 @@ static std::unique_ptr<mrcal_result> mrcal_calibrate(
   auto c_observations_board = observations_board_data.data();
   // Try to make sure we don't accidentally make a zero-length array or
   // something stupid
-  mrcal_observation_point_t
-      c_observations_point[std::max(Nobservations_point, 1)];
+  std::vector<mrcal_observation_point_t>
+      observations_point_data(std::max(Nobservations_point, 1);
+  mrcal_observation_point_t*
+      c_observations_point = observations_point_data.data();
 
   for (int i_observation = 0; i_observation < Nobservations_board;
        i_observation++) {
