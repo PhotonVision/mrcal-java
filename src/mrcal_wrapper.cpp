@@ -40,7 +40,7 @@ public:
 };
 static CholmodCtx cctx;
 
-#define BARF(...) std::fprintf(stderr, __VA_ARGS_)
+#define BARF(...) std::fprintf(stderr, __VA_ARGS__)
 
 // forward declarations for functions borrowed from mrcal-pywrap
 static mrcal_problem_selections_t construct_problem_selections(
