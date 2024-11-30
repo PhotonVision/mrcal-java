@@ -119,7 +119,7 @@ static std::unique_ptr<mrcal_result> mrcal_calibrate(
   // Try to make sure we don't accidentally make a zero-length array or
   // something stupid
   std::vector<mrcal_observation_point_t>
-      observations_point_data(std::max(Nobservations_point, 1);
+      observations_point_data(std::max(Nobservations_point, 1));
   mrcal_observation_point_t*
       c_observations_point = observations_point_data.data();
 
