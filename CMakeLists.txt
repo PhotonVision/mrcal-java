@@ -22,8 +22,8 @@ if (JNI_FOUND)
 endif()
 
 
-set(OPENCV_YEAR "frc2024")
-set(OPENCV_VERSION "4.8.0-2")
+set(OPENCV_YEAR "frc2025")
+set(OPENCV_VERSION "4.10.0-3")
 # also valid: windowsx86-64
 
 # type can be "", "debug", "static", or "staticdebug"
