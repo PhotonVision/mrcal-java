@@ -29,7 +29,7 @@ java {
 }
 
 dependencies {
-    implementation wpilibTools.deps.wpilibOpenCvJava("frc2024", "4.8.0-2")
+    implementation wpilibTools.deps.wpilibOpenCvJava("frc2025", "4.10.0-3")
 
     // Junit
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.2")
