@@ -55,9 +55,12 @@ WPI_JNI_MAKEJARRAY(jdouble, Double)
 #define JNI_BOOLARR "[Z"
 
 template <typename A, typename... Ts>
-std::string jni_make_method_sig(A retval, Ts &&...args) {
+std::string jni_make_method_sig(A retval, Ts&&... args) {
   std::ostringstream oss;
-  (oss << "(" << ... << std::forward<Ts>(args)) << ")" << retval;
+  oss << "(";
+  using expander = int[];
+  (void)expander{0, (static_cast<void>(oss << std::forward<Ts>(args)), 0)...};
+  oss << ")" << retval;
   return oss.str();
 }
 

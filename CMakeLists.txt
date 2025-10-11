@@ -94,10 +94,21 @@ target_include_directories(mrcal_jni SYSTEM PUBLIC ${JNI_INCLUDE_DIRS} ${OPENCV_
 add_dependencies(mrcal_jni generate_minimath)
 
 IF (WIN32)
-    find_package(cholmod CONFIG REQUIRED)
-    find_package(amd CONFIG REQUIRED)
-    target_link_libraries(mrcal_jni ${OPENCV_LIB_PATH} cholmod amd)
+    find_package(CHOLMOD CONFIG REQUIRED)
+    find_package(SuiteSparse_config CONFIG REQUIRED)
+    
+    target_link_libraries(mrcal_jni 
+        ${OPENCV_LIB_PATH} 
+        SuiteSparse::CHOLMOD_static
+        SuiteSparse::SuiteSparseConfig_static)
+
+    # HACK wtf
     target_include_directories(mrcal_jni PUBLIC "${CMAKE_BINARY_DIR}/vcpkg_installed/x64-windows/include/")
+    # libdogleg wants suitesparse on the include path too
+    target_include_directories(mrcal_jni PUBLIC "${CMAKE_BINARY_DIR}/vcpkg_installed/x64-windows/include/suitesparse")
+
+    # Another hack wtf
+    target_link_directories(mrcal_jni PRIVATE "${CMAKE_BINARY_DIR}/vcpkg_installed/x64-windows/lib")
 ELSE()
     target_link_libraries(mrcal_jni ${OPENCV_LIB_PATH} suitesparseconfig cholmod)
     target_include_directories(mrcal_jni PUBLIC "/usr/include/suitesparse")
