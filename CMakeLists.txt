@@ -30,6 +30,8 @@ set(OPENCV_VERSION "4.10.0-3")
 # type can be "", "debug", "static", or "staticdebug"
 set(OPENCV_TYPE "")
 
+set(OPENCV_ARCH "windowsx86-64") # HACK
+
 # Download opencv, and save the path
 include(FetchContent)
 FetchContent_Declare(
@@ -94,17 +96,15 @@ target_include_directories(mrcal_jni SYSTEM PUBLIC ${JNI_INCLUDE_DIRS} ${OPENCV_
 add_dependencies(mrcal_jni generate_minimath)
 
 IF (WIN32)
-    find_package(CHOLMOD CONFIG REQUIRED)
-    find_package(SuiteSparse_config CONFIG REQUIRED)
+    find_package(CHOLMOD REQUIRED)
+    find_package(SuiteSparse_config REQUIRED)
     
     target_link_libraries(mrcal_jni 
-        ${OPENCV_LIB_PATH} 
-        SuiteSparse::CHOLMOD_static
-        SuiteSparse::SuiteSparseConfig_static)
+        ${OPENCV_LIB_PATH}
+        SuiteSparse::CHOLMOD suitesparseconfig lapack openblas)
 
-    # HACK wtf
+    # Add SuiteSparse include directories
     target_include_directories(mrcal_jni PUBLIC "${CMAKE_BINARY_DIR}/vcpkg_installed/x64-windows/include/")
-    # libdogleg wants suitesparse on the include path too
     target_include_directories(mrcal_jni PUBLIC "${CMAKE_BINARY_DIR}/vcpkg_installed/x64-windows/include/suitesparse")
 
     # Another hack wtf
