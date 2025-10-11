@@ -21,6 +21,7 @@
 #include <cstdio>
 #include <exception>
 #include <span>
+#include <sstream>
 #include <stdexcept>
 #include <vector>
 
@@ -45,6 +46,22 @@ WPI_JNI_MAKEJARRAY(jfloat, Float)
 WPI_JNI_MAKEJARRAY(jdouble, Double)
 
 #undef WPI_JNI_MAKEJARRAY
+
+#define JNI_BOOL "Z"
+#define JNI_VOID "V"
+#define JNI_INT "I"
+#define JNI_DOUBLE "D"
+#define JNI_DOUBLEARR "[D"
+#define JNI_BOOLARR "[Z"
+
+#define JNI_STRINGIFY(x) #x
+
+template <typename A, typename... Ts>
+std::string jni_make_method_sig(A retval, Ts &&...args) {
+  std::ostringstream oss;
+  (oss << "(" << ... << std::forward<Ts>(args)) << ")" << retval;
+  return oss.str();
+}
 
 /**
  * Finds a class and keeps it as a global reference.
@@ -81,7 +98,8 @@ protected:
 };
 
 // Cache MrCalResult class
-JClass detectionClass;
+static JClass detectionClass;
+static jmethodID constructor;
 
 extern "C" {
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
@@ -96,6 +114,15 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
     std::printf("Couldn't find class!");
     return JNI_ERR;
   }
+
+  // Find the constructor. Reference:
+  // https://www.microfocus.com/documentation/extend-acucobol/925/BKITITJAVAS027.html
+  constructor = env->GetMethodID(
+      detectionClass, "<init>",
+      jni_make_method_sig(JNI_VOID, JNI_BOOL, JNI_INT, JNI_INT, JNI_DOUBLEARR,
+                          JNI_DOUBLEARR, JNI_DOUBLE, JNI_DOUBLEARR, JNI_DOUBLE,
+                          JNI_DOUBLE, JNI_INT, JNI_BOOLARR)
+          .c_str());
 
   return JNI_VERSION_1_6;
 }
@@ -212,6 +239,22 @@ Java_org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate_1camera
     jdouble warp_x = stats.calobject_warp.x2;
     jdouble warp_y = stats.calobject_warp.y2;
     jint Noutliers = stats.Noutliers_board;
+
+    jdoubleArray optimized_rt_toref = MakeJDoubleArray(
+        env, reinterpret_cast<double *>(total_frames_rt_toref.data()),
+        total_frames_rt_toref.size() * sizeof(mrcal_pose_t) / sizeof(double));
+
+    std::vector<jboolean> cornersUsedMask(observations.size());
+    std::transform(observations.begin(), observations.end(),
+                  cornersUsedMask.begin(),
+                  [](const auto &pt) { return (jboolean)(pt.z > 0); });
+    auto cornersUsedJarr = MakeJBooleanArray(env, cornersUsedMask.data(), cornersUsedMask.size());
+
+    // Actually call the constructor
+    auto ret =
+        env->NewObject(detectionClass, constructor, success, boardWidth,
+                      boardHeight, intrinsics, optimized_rt_toref, rms_err,
+                      residuals, warp_x, warp_y, Noutliers, cornersUsedJarr);
 
     // Actually call the constructor (TODO)
     auto ret = env->NewObject(detectionClass, constructor, success, intrinsics,
