@@ -93,8 +93,8 @@ jobs:
         bind_mount_repository: true
         commands: |
           sudo bash -c "echo 'deb [trusted=yes] http://mrcal.secretsauce.net/packages/jammy/public/ jammy main' >> /etc/apt/sources.list"
-          sudo apt update
-          sudo apt install cmake default-jdk default-jre git gcc g++ libmrcal-dev mrbuild libsuitesparse-dev liblist-moreutils-perl -y
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends cmake default-jdk default-jre git gcc g++ libmrcal-dev mrbuild libsuitesparse-dev liblist-moreutils-perl -y
           cmake -B cmake_build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DOPENCV_ARCH=linuxarm64
           cmake --build cmake_build --config ${{env.BUILD_TYPE}} -j --target mrcal_jni
 
