@@ -221,8 +221,10 @@ Java_org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate_1camera
 
     // Find the constructor. Reference:
     // https://www.microfocus.com/documentation/extend-acucobol/925/BKITITJAVAS027.html
-    static jmethodID constructor =
-        env->GetMethodID(detectionClass, "<init>", "(Z[DD[DDDI)V");
+    static jmethodID constructor = env->GetMethodID(
+        detectionClass, "<init>",
+        jni_make_method_sig(JNI_VOID, JNI_BOOL, JNI_DOUBLEARR, JNI_DOUBLE, 
+                           JNI_DOUBLEARR, JNI_DOUBLE, JNI_DOUBLE, JNI_INT).c_str());
     if (!constructor) {
       return nullptr;
     }
@@ -255,10 +257,6 @@ Java_org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate_1camera
         env->NewObject(detectionClass, constructor, success, boardWidth,
                       boardHeight, intrinsics, optimized_rt_toref, rms_err,
                       residuals, warp_x, warp_y, Noutliers, cornersUsedJarr);
-
-    // Actually call the constructor (TODO)
-    auto ret = env->NewObject(detectionClass, constructor, success, intrinsics,
-                              rms_err, residuals, warp_x, warp_y, Noutliers);
 
     return ret;
   } catch (...) {
