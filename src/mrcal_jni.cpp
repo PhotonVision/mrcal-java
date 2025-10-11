@@ -109,7 +109,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
   detectionClass = JClass(env, "org/photonvision/mrcal/MrCalJNI$MrCalResult");
 
   if (!detectionClass) {
-    std::printf("Couldn't find class!");
+    std::printf("Couldn't find detection class!");
     return JNI_ERR;
   }
 
@@ -121,6 +121,11 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
                           JNI_DOUBLEARR, JNI_DOUBLE, JNI_DOUBLEARR, JNI_DOUBLE,
                           JNI_DOUBLE, JNI_INT, JNI_BOOLARR)
           .c_str());
+
+  if (!constructor) {
+    std::printf("Couldn't find detection ctor!");
+    return JNI_ERR;
+  }
 
   return JNI_VERSION_1_6;
 }
@@ -217,12 +222,6 @@ Java_org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate_1camera
     }
     mrcal_result &stats = *statsptr;
 
-    // Find the constructor. Reference:
-    // https://www.microfocus.com/documentation/extend-acucobol/925/BKITITJAVAS027.html
-    static jmethodID constructor = env->GetMethodID(
-        detectionClass, "<init>",
-        jni_make_method_sig(JNI_VOID, JNI_BOOL, JNI_DOUBLEARR, JNI_DOUBLE, 
-                           JNI_DOUBLEARR, JNI_DOUBLE, JNI_DOUBLE, JNI_INT).c_str());
     if (!constructor) {
       return nullptr;
     }
