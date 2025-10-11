@@ -9,8 +9,8 @@ on:
     branches: [ "main" ]
 
 env:
-  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
+  IMAGE_VERSION: v2025.0.4
 
 jobs:
   build-host:
@@ -87,7 +87,7 @@ jobs:
     - run: git describe --tags
     - uses: pguyot/arm-runner-action@v2
       with:
-        base_image: raspios_lite_arm64:latest
+        base_image: https://github.com/PhotonVision/photon-image-modifier/releases/download/$IMAGE_VERSION/photonvision_raspi.img.xz
         cpu: cortex-a7
         image_additional_mb: 2500
         bind_mount_repository: true
