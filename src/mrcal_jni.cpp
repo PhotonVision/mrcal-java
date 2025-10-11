@@ -54,8 +54,6 @@ WPI_JNI_MAKEJARRAY(jdouble, Double)
 #define JNI_DOUBLEARR "[D"
 #define JNI_BOOLARR "[Z"
 
-#define JNI_STRINGIFY(x) #x
-
 template <typename A, typename... Ts>
 std::string jni_make_method_sig(A retval, Ts &&...args) {
   std::ostringstream oss;
