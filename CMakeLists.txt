@@ -25,12 +25,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(OPENCV_YEAR "frc2025")
 set(OPENCV_VERSION "4.10.0-3")
-# also valid: windowsx86-64
 
 # type can be "", "debug", "static", or "staticdebug"
 set(OPENCV_TYPE "")
-
-set(OPENCV_ARCH "windowsx86-64") # HACK
 
 # Download opencv, and save the path
 include(FetchContent)
