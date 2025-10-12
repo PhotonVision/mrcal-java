@@ -61,8 +61,8 @@ std::unique_ptr<mrcal_result> mrcal_main(
     // List, depth is ordered array observation[N frames, object_height,
     // object_width] = [x,y, weight] weight<0 means ignored)
     std::span<mrcal_point3_t> observations_board,
-    // RT transform from camera to object
-    std::span<mrcal_pose_t> frames_rt_toref,
+    // [out] RT transform from camera to object
+    std::span<mrcal_pose_t>& frames_rt_toref,
     // Chessboard size, in corners (not squares)
     cv::Size calobjectSize, double boardSpacing,
     // res, pixels
