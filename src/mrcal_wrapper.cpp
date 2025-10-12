@@ -42,14 +42,6 @@ static CholmodCtx cctx;
 
 #define BARF(...) std::fprintf(stderr, __VA_ARGS__)
 
-// forward declarations for functions borrowed from mrcal-pywrap
-static mrcal_problem_selections_t construct_problem_selections(
-    int do_optimize_intrinsics_core, int do_optimize_intrinsics_distortions,
-    int do_optimize_extrinsics, int do_optimize_frames,
-    int do_optimize_calobject_warp, int do_apply_regularization,
-    int do_apply_outlier_rejection, int Ncameras_intrinsics,
-    int Ncameras_extrinsics, int Nframes, int Nobservations_board);
-
 bool lensmodel_one_validate_args(mrcal_lensmodel_t *mrcal_lensmodel,
                                  std::vector<double> intrinsics,
                                  bool do_check_layout);
@@ -90,7 +82,7 @@ static std::unique_ptr<mrcal_result> mrcal_calibrate(
   // TODO set sizes and populate
   int imagersize[] = {cameraRes.width, cameraRes.height};
 
-  mrcal_calobject_warp_t calobject_warp = {0, 0};
+  mrcal_calobject_warp_t calobject_warp {.x2 = 0, .y2 = 0};
 
   // int Nobservations_point_triangulated = 0; // no clue what this is
 
@@ -104,8 +96,7 @@ static std::unique_ptr<mrcal_result> mrcal_calibrate(
   std::vector<mrcal_point3_t> indices_frame_camintrinsics_camextrinsics;
   // Frame index, camera number, (camera number)-1???
   for (int i = 0; i < Nobservations_board; i++) {
-    indices_frame_camintrinsics_camextrinsics.push_back(
-        {static_cast<double>(i), 0, -1});
+    indices_frame_camintrinsics_camextrinsics.push_back({.x=static_cast<double>(i), .y=0, .z=-1});
   }
 
   // Pool is the raw observation backing array
@@ -162,10 +153,6 @@ static std::unique_ptr<mrcal_result> mrcal_calibrate(
     return ret;
   }
 
-  int Nstate = mrcal_num_states(
-      Ncameras_intrinsics, Ncameras_extrinsics, Nframes, Npoints, Npoints_fixed,
-      Nobservations_board, problem_selections, &mrcal_lensmodel);
-
   int Nmeasurements = mrcal_num_measurements(
       Nobservations_board, Nobservations_point,
       // observations_point_triangulated,
@@ -177,10 +164,7 @@ static std::unique_ptr<mrcal_result> mrcal_calibrate(
   // OK, now we should have everything ready! Just some final setup and then
   // call optimize
 
-  // Residuals
-  std::vector<double> b_packed_final(Nstate);
-  auto c_b_packed_final = b_packed_final.data();
-
+  // state vector
   std::vector<double> x_final(Nmeasurements);
   auto c_x_final = x_final.data();
 
@@ -380,8 +364,8 @@ std::unique_ptr<mrcal_result> mrcal_main(
     // List, depth is ordered array observation[N frames, object_height,
     // object_width] = [x,y, weight] weight<0 means ignored)
     std::span<mrcal_point3_t> observations_board,
-    // RT transform from camera to object
-    std::span<mrcal_pose_t>& frames_rt_toref,
+    // [in, out] RT transform from camera to object
+    std::span<mrcal_pose_t> frames_rt_toref,
     // Chessboard size, in corners (not squares)
     Size calobjectSize, double calibration_object_spacing,
     // res, pixels

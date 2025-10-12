@@ -199,11 +199,6 @@ Java_org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate_1camera
       auto seed_pose =
           getSeedPose(&(*observations.begin()) + (i * points_in_board),
                       boardSize, imagerSize, boardSpacing, focalLenGuessMM);
-      // std::printf("Seed pose %lu: r %f %f %f t %f %f %f\n", i, seed_pose.r.x,
-      //             seed_pose.r.y, seed_pose.r.z, seed_pose.t.x, seed_pose.t.y,
-      //             seed_pose.t.z);
-
-      // Add to seed poses
       total_frames_rt_toref.push_back(seed_pose);
     }
 
@@ -263,8 +258,9 @@ Java_org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate_1camera
     std::cerr << "Calibration exception: " << what() << std::endl;
 
     static char buff[512];
-    std::strcpy(buff, what().c_str());
+    strcpy_s(buff, sizeof(buff), what().c_str());
     env->ThrowNew(env->FindClass("java/lang/Exception"), buff);
+    return nullptr;
   }
 }
 
