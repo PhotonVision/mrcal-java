@@ -134,6 +134,7 @@ add_dependencies(mrcal_jni generate_minimath)
 
 target_link_libraries(mrcal_jni 
     ${OPENCV_LIB_PATH}
+    OpenBLAS
     SuiteSparse::CHOLMOD_static
     SuiteSparse::SuiteSparseConfig_static
 )
