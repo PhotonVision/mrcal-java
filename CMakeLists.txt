@@ -23,7 +23,7 @@ endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Keep this in sync with build.gradle and with 
+# Keep this in sync with build.gradle and with
 # https://github.com/PhotonVision/photonvision/blob/main/build.gradle
 set(OPENCV_YEAR "frc2025")
 set(OPENCV_VERSION "4.10.0-3")
@@ -97,8 +97,8 @@ add_dependencies(mrcal_jni generate_minimath)
 IF (WIN32)
     find_package(CHOLMOD REQUIRED)
     find_package(SuiteSparse_config REQUIRED)
-    
-    target_link_libraries(mrcal_jni 
+
+    target_link_libraries(mrcal_jni
         ${OPENCV_LIB_PATH}
         SuiteSparse::CHOLMOD suitesparseconfig lapack openblas)
 

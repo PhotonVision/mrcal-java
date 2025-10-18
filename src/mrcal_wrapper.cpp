@@ -46,10 +46,11 @@ bool lensmodel_one_validate_args(mrcal_lensmodel_t *mrcal_lensmodel,
                                  std::vector<double> intrinsics,
                                  bool do_check_layout);
 
-mrcal_point3_t* observations_point = nullptr;
-mrcal_pose_t*
-    extrinsics_rt_fromref = nullptr; // Always zero for single camera, it seems?
-mrcal_point3_t* points = nullptr;     // Seems to always to be None for single camera?
+mrcal_point3_t *observations_point = nullptr;
+mrcal_pose_t *extrinsics_rt_fromref =
+    nullptr; // Always zero for single camera, it seems?
+mrcal_point3_t *points =
+    nullptr; // Seems to always to be None for single camera?
 
 static std::unique_ptr<mrcal_result> mrcal_calibrate(
     // List, depth is ordered array observation[N frames, object_height,
@@ -82,7 +83,7 @@ static std::unique_ptr<mrcal_result> mrcal_calibrate(
   // TODO set sizes and populate
   int imagersize[] = {cameraRes.width, cameraRes.height};
 
-  mrcal_calobject_warp_t calobject_warp {.x2 = 0, .y2 = 0};
+  mrcal_calobject_warp_t calobject_warp{.x2 = 0, .y2 = 0};
 
   // int Nobservations_point_triangulated = 0; // no clue what this is
 
@@ -96,7 +97,8 @@ static std::unique_ptr<mrcal_result> mrcal_calibrate(
   std::vector<mrcal_point3_t> indices_frame_camintrinsics_camextrinsics;
   // Frame index, camera number, (camera number)-1???
   for (int i = 0; i < Nobservations_board; i++) {
-    indices_frame_camintrinsics_camextrinsics.push_back({.x=static_cast<double>(i), .y=0, .z=-1});
+    indices_frame_camintrinsics_camextrinsics.push_back(
+        {.x = static_cast<double>(i), .y = 0, .z = -1});
   }
 
   // Pool is the raw observation backing array
@@ -105,14 +107,15 @@ static std::unique_ptr<mrcal_result> mrcal_calibrate(
 
   // Copy from board/point pool above, using some code borrowed from
   // mrcal-pywrap
-  std::vector<mrcal_observation_board_t> observations_board_data(Nobservations_board);
+  std::vector<mrcal_observation_board_t> observations_board_data(
+      Nobservations_board);
   auto c_observations_board = observations_board_data.data();
   // Try to make sure we don't accidentally make a zero-length array or
   // something stupid
-  std::vector<mrcal_observation_point_t>
-      observations_point_data(std::max(Nobservations_point, 1));
-  mrcal_observation_point_t*
-      c_observations_point = observations_point_data.data();
+  std::vector<mrcal_observation_point_t> observations_point_data(
+      std::max(Nobservations_point, 1));
+  mrcal_observation_point_t *c_observations_point =
+      observations_point_data.data();
 
   for (int i_observation = 0; i_observation < Nobservations_board;
        i_observation++) {

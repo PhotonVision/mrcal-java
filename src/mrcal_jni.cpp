@@ -47,21 +47,20 @@ WPI_JNI_MAKEJARRAY(jdouble, Double)
 
 #undef WPI_JNI_MAKEJARRAY
 
-#define JNI_BOOL "Z"
-#define JNI_VOID "V"
-#define JNI_INT "I"
-#define JNI_DOUBLE "D"
-#define JNI_DOUBLEARR "[D"
-#define JNI_BOOLARR "[Z"
+static constexpr std::string JNI_BOOL{"Z"};
+static constexpr std::string JNI_VOID{"V"};
+static constexpr std::string JNI_INT{"I"};
+static constexpr std::string JNI_DOUBLE{"D"};
+static constexpr std::string JNI_DOUBLEARR{"[D"};
+static constexpr std::string JNI_BOOLARR{"[Z"};
 
-template <typename A, typename... Ts>
-std::string jni_make_method_sig(A retval, Ts&&... args) {
-  std::ostringstream oss;
-  oss << "(";
-  using expander = int[];
-  (void)expander{0, (static_cast<void>(oss << std::forward<Ts>(args)), 0)...};
-  oss << ")" << retval;
-  return oss.str();
+template<typename... Args>
+constexpr std::string jni_make_method_sig(std::string_view retval, Args&&... args) {
+  std::string result = "(";
+  ((result += std::string_view(args)), ...);  // Ensure args are converted to string_view
+  result += ")";
+  result += retval;
+  return result;
 }
 
 /**
@@ -243,22 +242,23 @@ Java_org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate_1camera
 
     std::vector<jboolean> cornersUsedMask(observations.size());
     std::transform(observations.begin(), observations.end(),
-                  cornersUsedMask.begin(),
-                  [](const auto &pt) { return (jboolean)(pt.z > 0); });
-    auto cornersUsedJarr = MakeJBooleanArray(env, cornersUsedMask.data(), cornersUsedMask.size());
+                   cornersUsedMask.begin(),
+                   [](const auto &pt) { return (jboolean)(pt.z > 0); });
+    auto cornersUsedJarr =
+        MakeJBooleanArray(env, cornersUsedMask.data(), cornersUsedMask.size());
 
     // Actually call the constructor
     auto ret =
         env->NewObject(detectionClass, constructor, success, boardWidth,
-                      boardHeight, intrinsics, optimized_rt_toref, rms_err,
-                      residuals, warp_x, warp_y, Noutliers, cornersUsedJarr);
+                       boardHeight, intrinsics, optimized_rt_toref, rms_err,
+                       residuals, warp_x, warp_y, Noutliers, cornersUsedJarr);
 
     return ret;
   } catch (...) {
     std::cerr << "Calibration exception: " << what() << std::endl;
 
     static char buff[512];
-    strncpy(buff, what().c_str(), sizeof(buff));
+    std::strncpy(buff, what().c_str(), sizeof(buff));
     buff[sizeof(buff) - 1] = 0;
     env->ThrowNew(env->FindClass("java/lang/Exception"), buff);
     return nullptr;

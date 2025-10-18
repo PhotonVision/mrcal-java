@@ -117,7 +117,6 @@ public class MrCalJNI {
 
             // Assume that we're correct in terms of row/column major-ness (lol)
             for (int c = 0; c < corners.length; c++) {
-
                 var corner = corners[c];
                 float level = levels[c];
 
