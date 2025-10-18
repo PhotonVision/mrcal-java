@@ -58,23 +58,52 @@ set(USE_LOCKING ON)
 set(USE_THREAD OFF)
 set(NOFORTRAN ON)
 
-set(SUITESPARSE_ENABLE_PROJECTS cholmod)
-set(SUITESPARSE_USE_CUDA OFF)
-set(SUITESPARSE_USE_FORTRAN OFF)
-set(SUITESPARSE_USE_OPENMP OFF)
-set(SUITESPARSE_USE_PYTHON OFF)
-set(CHOLMOD_GPL OFF)
-set(BLA_VENDOR OpenBLAS)
-
 # We need PIC for this to work as a shared library
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+set(BLA_VENDOR OpenBLAS)
 fetchcontent_declare(
     BLAS
     GIT_REPOSITORY https://github.com/OpenMathLib/OpenBLAS.git
     GIT_TAG v0.3.30
     OVERRIDE_FIND_PACKAGE
 )
+fetchcontent_makeavailable(BLAS)
+
+if(TARGET openblas)
+    set(OPENBLAS_TARGET openblas)
+    message(STATUS "Using openblas target")
+elseif(TARGET OpenBLAS)
+    set(OPENBLAS_TARGET OpenBLAS)
+    message(STATUS "Using OpenBLAS target")
+elseif(TARGET libopenblas)
+    set(OPENBLAS_TARGET libopenblas)
+    message(STATUS "Using libopenblas target")
+else()
+    # Fallback: find the library file manually
+    find_library(OPENBLAS_LIB
+        NAMES openblas libopenblas
+        PATHS 
+            ${openblas_external_BINARY_DIR}
+            ${openblas_external_BINARY_DIR}/lib
+            ${openblas_external_BINARY_DIR}/lib/Release
+        NO_DEFAULT_PATH
+        REQUIRED
+    )
+    message(STATUS "Using OpenBLAS library file: ${OPENBLAS_LIB}")
+    add_library(openblas_imported STATIC IMPORTED)
+    set_target_properties(openblas_imported PROPERTIES IMPORTED_LOCATION ${OPENBLAS_LIB})
+    set(OPENBLAS_TARGET openblas_imported)
+endif()
+
+# Configure SuiteSparse to use BLAS
+set(SUITESPARSE_ENABLE_PROJECTS cholmod)
+set(SUITESPARSE_USE_CUDA OFF)
+set(SUITESPARSE_USE_FORTRAN OFF)
+set(SUITESPARSE_USE_OPENMP OFF)
+set(SUITESPARSE_USE_PYTHON OFF)
+set(CHOLMOD_GPL OFF)
+set(SUITESPARSE_USE_BLAS ON)
 
 fetchcontent_declare(
     SuiteSparse
@@ -82,10 +111,11 @@ fetchcontent_declare(
     GIT_TAG v7.11.0
     OVERRIDE_FIND_PACKAGE
 )
-fetchcontent_makeavailable(BLAS SuiteSparse)
+fetchcontent_makeavailable(SuiteSparse)
 
 get_target_property(CHOLMOD_LIBS SuiteSparse::CHOLMOD_static INTERFACE_LINK_LIBRARIES)
 message(STATUS "CHOLMOD links to: ${CHOLMOD_LIBS}")
+message(STATUS "BLAS is at: ${OPENBLAS_TARGET}")
 
 # And pull in JNI
 find_package(JNI)
@@ -139,7 +169,7 @@ target_link_libraries(mrcal_jni
     ${OPENCV_LIB_PATH}
     SuiteSparse::CHOLMOD_static
     SuiteSparse::SuiteSparseConfig_static
-    ${BLAS_LIBRARIES}
+    ${OPENBLAS_TARGET}
 )
 
 # Test script for checking our linker
