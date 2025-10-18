@@ -112,6 +112,7 @@ jobs:
       with:
         name: libmrcal-jar-pi
         path: ${{ github.workspace }}/build/libs/*.jar
+        path: ${{ github.workspace }}/build/outputs
 
   build-windows:
     runs-on: windows-latest
