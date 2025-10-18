@@ -1,6 +1,6 @@
 /*
  * Copyright (C) Photon Vision.
- * 
+ *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted.
  *
@@ -18,13 +18,6 @@
 extern "C" {
 // Seems to be missing C++ guards
 #include <mrcal.h>
-
-} // extern "C"
-
-// Seems like these people don't properly extern-c their headers either
-extern "C" {
-#include <suitesparse/SuiteSparse_config.h>
-#include <suitesparse/cholmod_core.h>
 } // extern "C"
 
 #include <memory>
@@ -61,7 +54,7 @@ std::unique_ptr<mrcal_result> mrcal_main(
     // List, depth is ordered array observation[N frames, object_height,
     // object_width] = [x,y, weight] weight<0 means ignored)
     std::span<mrcal_point3_t> observations_board,
-    // RT transform from camera to object
+    // [out] RT transform from camera to object
     std::span<mrcal_pose_t> frames_rt_toref,
     // Chessboard size, in corners (not squares)
     cv::Size calobjectSize, double boardSpacing,

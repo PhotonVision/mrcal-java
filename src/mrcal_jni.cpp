@@ -21,6 +21,7 @@
 #include <cstdio>
 #include <exception>
 #include <span>
+#include <sstream>
 #include <stdexcept>
 #include <vector>
 
@@ -45,6 +46,22 @@ WPI_JNI_MAKEJARRAY(jfloat, Float)
 WPI_JNI_MAKEJARRAY(jdouble, Double)
 
 #undef WPI_JNI_MAKEJARRAY
+
+static constexpr std::string_view JNI_BOOL{"Z"};
+static constexpr std::string_view JNI_VOID{"V"};
+static constexpr std::string_view JNI_INT{"I"};
+static constexpr std::string_view JNI_DOUBLE{"D"};
+static constexpr std::string_view JNI_DOUBLEARR{"[D"};
+static constexpr std::string_view JNI_BOOLARR{"[Z"};
+
+template<typename... Args>
+constexpr std::string jni_make_method_sig(std::string_view retval, Args&&... args) {
+  std::string result = "(";
+  ((result += std::string_view(args)), ...);  // Ensure args are converted to string_view
+  result += ")";
+  result += retval;
+  return result;
+}
 
 /**
  * Finds a class and keeps it as a global reference.
@@ -81,7 +98,8 @@ protected:
 };
 
 // Cache MrCalResult class
-JClass detectionClass;
+static JClass detectionClass;
+static jmethodID constructor;
 
 extern "C" {
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
@@ -93,7 +111,21 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
   detectionClass = JClass(env, "org/photonvision/mrcal/MrCalJNI$MrCalResult");
 
   if (!detectionClass) {
-    std::printf("Couldn't find class!");
+    std::printf("Couldn't find detection class!");
+    return JNI_ERR;
+  }
+
+  // Find the constructor. Reference:
+  // https://www.microfocus.com/documentation/extend-acucobol/925/BKITITJAVAS027.html
+  constructor = env->GetMethodID(
+      detectionClass, "<init>",
+      jni_make_method_sig(JNI_VOID, JNI_BOOL, JNI_INT, JNI_INT, JNI_DOUBLEARR,
+                          JNI_DOUBLEARR, JNI_DOUBLE, JNI_DOUBLEARR, JNI_DOUBLE,
+                          JNI_DOUBLE, JNI_INT, JNI_BOOLARR)
+          .c_str());
+
+  if (!constructor) {
+    std::printf("Couldn't find detection ctor!");
     return JNI_ERR;
   }
 
@@ -166,11 +198,6 @@ Java_org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate_1camera
       auto seed_pose =
           getSeedPose(&(*observations.begin()) + (i * points_in_board),
                       boardSize, imagerSize, boardSpacing, focalLenGuessMM);
-      // std::printf("Seed pose %lu: r %f %f %f t %f %f %f\n", i, seed_pose.r.x,
-      //             seed_pose.r.y, seed_pose.r.z, seed_pose.t.x, seed_pose.t.y,
-      //             seed_pose.t.z);
-
-      // Add to seed poses
       total_frames_rt_toref.push_back(seed_pose);
     }
 
@@ -192,10 +219,6 @@ Java_org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate_1camera
     }
     mrcal_result &stats = *statsptr;
 
-    // Find the constructor. Reference:
-    // https://www.microfocus.com/documentation/extend-acucobol/925/BKITITJAVAS027.html
-    static jmethodID constructor =
-        env->GetMethodID(detectionClass, "<init>", "(Z[DD[DDDI)V");
     if (!constructor) {
       return nullptr;
     }
@@ -213,17 +236,32 @@ Java_org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate_1camera
     jdouble warp_y = stats.calobject_warp.y2;
     jint Noutliers = stats.Noutliers_board;
 
-    // Actually call the constructor (TODO)
-    auto ret = env->NewObject(detectionClass, constructor, success, intrinsics,
-                              rms_err, residuals, warp_x, warp_y, Noutliers);
+    jdoubleArray optimized_rt_toref = MakeJDoubleArray(
+        env, reinterpret_cast<double *>(total_frames_rt_toref.data()),
+        total_frames_rt_toref.size() * sizeof(mrcal_pose_t) / sizeof(double));
+
+    std::vector<jboolean> cornersUsedMask(observations.size());
+    std::transform(observations.begin(), observations.end(),
+                   cornersUsedMask.begin(),
+                   [](const auto &pt) { return (jboolean)(pt.z > 0); });
+    auto cornersUsedJarr =
+        MakeJBooleanArray(env, cornersUsedMask.data(), cornersUsedMask.size());
+
+    // Actually call the constructor
+    auto ret =
+        env->NewObject(detectionClass, constructor, success, boardWidth,
+                       boardHeight, intrinsics, optimized_rt_toref, rms_err,
+                       residuals, warp_x, warp_y, Noutliers, cornersUsedJarr);
 
     return ret;
   } catch (...) {
     std::cerr << "Calibration exception: " << what() << std::endl;
 
     static char buff[512];
-    std::strcpy(buff, what().c_str());
+    std::strncpy(buff, what().c_str(), sizeof(buff));
+    buff[sizeof(buff) - 1] = 0;
     env->ThrowNew(env->FindClass("java/lang/Exception"), buff);
+    return nullptr;
   }
 }
 
