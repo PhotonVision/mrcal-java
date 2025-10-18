@@ -1,0 +1,7 @@
+services:
+  cross-build:
+    image: wpilib/aarch64-cross-ubuntu:2025-bookworm-22.04-py312
+    volumes:
+      - ./:/work/mrcal-java
+    working_dir: /work/mrcal-java
+    command: ./cross-build.sh

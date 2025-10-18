@@ -61,6 +61,13 @@ set(NOFORTRAN ON)
 # We need PIC for this to work as a shared library
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+# for some reason, ci wants this
+if(CMAKE_CROSSCOMPILING)
+    set(GIT_SHALLOW FALSE)
+else()
+    set(GIT_SHALLOW TRUE)
+endif()
+
 # Silence OpenBLAS/LAPACK warnings
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -w")
 set(BLA_VENDOR OpenBLAS)
@@ -68,9 +75,11 @@ fetchcontent_declare(
     BLAS
     GIT_REPOSITORY https://github.com/OpenMathLib/OpenBLAS.git
     GIT_TAG v0.3.30
+    GIT_SHALLOW ${GIT_SHALLOW}
     OVERRIDE_FIND_PACKAGE
 )
 fetchcontent_makeavailable(BLAS)
+find_package(BLAS REQUIRED)
 
 if(TARGET openblas)
     set(OPENBLAS_TARGET openblas)
@@ -111,6 +120,7 @@ fetchcontent_declare(
     SuiteSparse
     GIT_REPOSITORY https://github.com/DrTimothyAldenDavis/SuiteSparse.git
     GIT_TAG v7.11.0
+    GIT_SHALLOW ${GIT_SHALLOW}
     OVERRIDE_FIND_PACKAGE
 )
 fetchcontent_makeavailable(SuiteSparse)

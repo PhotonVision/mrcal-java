@@ -22,6 +22,12 @@ jobs:
         include:
           - os: ubuntu-22.04
             arch-name: linuxx86-64
+            gradle-flags: ""
+          # https://github.com/PhotonVision/photon-image-modifier/blob/main/.github/workflows/main.yml#L55
+          # we are still on bookwork
+          - os: wpilib/raspbian-cross-ubuntu:2025-bookworm-22.04-py312
+            arch-name: linuxarm64
+            gradle-flags: "-PArchOverride=linuxarm64"
 
     runs-on: ${{ matrix.os }}
     name: "mrcal-jni - Build - ${{ matrix.arch-name }}"
@@ -47,8 +53,7 @@ jobs:
 
     - name: Install deps
       run: |
-        sudo bash -c "echo 'deb [trusted=yes] http://mrcal.secretsauce.net/packages/jammy/public/ jammy main' >> /etc/apt/sources.list"
-        sudo apt update
+        sudo apt-get update
         sudo apt-get install -y cmake gcc g++ liblist-moreutils-perl
 
     - name: Configure CMake
@@ -62,9 +67,9 @@ jobs:
 
     - name: Gradle build
       # Build your program with the given configuration
-      run: ./gradlew build
+      run: ./gradlew build ${{ matrix.gradle-flags }}
 
-    - run: ./gradlew publish
+    - run: ./gradlew publish ${{ matrix.gradle-flags }}
       name: Publish
       env:
         ARTIFACTORY_API_KEY: ${{ secrets.ARTIFACTORY_API_KEY }}
@@ -75,42 +80,6 @@ jobs:
         name: libmrcal-jar-${{ matrix.arch-name }}
         path: |
           ${{ github.workspace }}/build/libs/*.jar
-
-  build-raspi:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-      with:
-        submodules: 'true'
-        fetch-depth: 0
-    - name: Fetch tags
-      run: git fetch --tags --force
-    - run: git describe --tags
-    - uses: pguyot/arm-runner-action@v2
-      with:
-        base_image: https://github.com/PhotonVision/photon-image-modifier/releases/download/$IMAGE_VERSION/photonvision_raspi.img.xz
-        cpu: cortex-a7
-        image_additional_mb: 5000
-        bind_mount_repository: true
-        # Mark kernel packages as held to avoid automatic updates (which don't work in a chroot)
-        commands: |
-          sudo bash -c "echo 'deb [trusted=yes] http://mrcal.secretsauce.net/packages/jammy/public/ jammy main' >> /etc/apt/sources.list"
-          sudo apt-get update
-          sudo apt-mark hold 'linux-image-*'
-          sudo apt-get install --no-install-recommends cmake default-jdk default-jre git gcc g++ liblist-moreutils-perl ninja-build -y
-          cmake -B cmake_build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DOPENCV_ARCH=linuxarm64 -G Ninja
-          cmake --build cmake_build --config ${{env.BUILD_TYPE}} -j --target mrcal_jni
-
-    - run: |
-        ./gradlew build ${{ (startsWith(github.event_name, 'push') && 'publish') || '' }} -PArchOverride=linuxarm64
-      env:
-        ARTIFACTORY_API_KEY: ${{ secrets.ARTIFACTORY_API_KEY }}
-
-    - uses: actions/upload-artifact@v4
-      name: Upload jar
-      with:
-        name: libmrcal-jar-pi
-        path: ${{ github.workspace }}/build/libs/*.jar
 
   build-windows:
     runs-on: windows-latest
@@ -162,7 +131,7 @@ jobs:
         path: ${{ github.workspace }}/build/libs/*.jar
 
   release:
-    needs: [build-host, build-raspi, build-windows]
+    needs: [build-host, build-windows]
     runs-on: ubuntu-22.04
     steps:
       # Download literally every single artifact. This also downloads client and docs,
