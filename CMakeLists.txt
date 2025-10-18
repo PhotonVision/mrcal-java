@@ -84,6 +84,9 @@ fetchcontent_declare(
 )
 fetchcontent_makeavailable(BLAS SuiteSparse)
 
+get_target_property(CHOLMOD_LIBS SuiteSparse::CHOLMOD_static INTERFACE_LINK_LIBRARIES)
+message(STATUS "CHOLMOD links to: ${CHOLMOD_LIBS}")
+
 # And pull in JNI
 find_package(JNI)
 if (JNI_FOUND)
@@ -134,9 +137,9 @@ add_dependencies(mrcal_jni generate_minimath)
 
 target_link_libraries(mrcal_jni 
     ${OPENCV_LIB_PATH}
-    OpenBLAS
     SuiteSparse::CHOLMOD_static
     SuiteSparse::SuiteSparseConfig_static
+    ${BLAS_LIBRARIES}
 )
 
 # Test script for checking our linker
