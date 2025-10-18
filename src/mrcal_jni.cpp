@@ -258,7 +258,8 @@ Java_org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate_1camera
     std::cerr << "Calibration exception: " << what() << std::endl;
 
     static char buff[512];
-    strcpy_s(buff, sizeof(buff), what().c_str());
+    strncpy(buff, what().c_str(), sizeof(buff));
+    buff[sizeof(buff) - 1] = 0;
     env->ThrowNew(env->FindClass("java/lang/Exception"), buff);
     return nullptr;
   }
