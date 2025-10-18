@@ -7,21 +7,12 @@ option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 # C++
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set (WITH_ASAN OFF)
-
 if (WITH_ASAN)
     add_compile_options(-fsanitize=address -g -Wall -fsanitize=undefined)
 endif ()
-
-find_package(JNI)
-if (JNI_FOUND)
-    # Fixes odd AWT dependency
-    set (JNI_INCLUDE_DIRS ${JAVA_INCLUDE_PATH} ${JAVA_INCLUDE_PATH2})
-    message (STATUS "JNI_INCLUDE_DIRS=${JNI_INCLUDE_DIRS}")
-endif()
-
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Keep this in sync with build.gradle and with
 # https://github.com/PhotonVision/photonvision/blob/main/build.gradle
@@ -53,6 +44,53 @@ file(GLOB_RECURSE OPENCV_LIB_PATH
 )
 SET(OPENCV_INCLUDE_PATH ${opencv_header_SOURCE_DIR})
 message("Depending on opencv ${OPENCV_LIB_PATH}")
+
+# Openblas/suitesparse/friends
+# From https://github.com/wpilibsuite/thirdparty-ceres/blob/main/CMakeLists.txt
+set(BUILD_SHARED_LIBS OFF)
+set(BUILD_TESTING OFF)
+set(BUILD_EXAMPLES OFF)
+
+set(NO_CBLAS ON)
+set(NO_LAPACKE ON)
+set(C_LAPACK ON)
+set(USE_LOCKING ON)
+set(USE_THREAD OFF)
+set(NOFORTRAN ON)
+
+set(SUITESPARSE_ENABLE_PROJECTS cholmod)
+set(SUITESPARSE_USE_CUDA OFF)
+set(SUITESPARSE_USE_FORTRAN OFF)
+set(SUITESPARSE_USE_OPENMP OFF)
+set(SUITESPARSE_USE_PYTHON OFF)
+set(CHOLMOD_GPL OFF)
+set(BLA_VENDOR OpenBLAS)
+
+# We need PIC for this to work as a shared library
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+fetchcontent_declare(
+    BLAS
+    GIT_REPOSITORY https://github.com/OpenMathLib/OpenBLAS.git
+    GIT_TAG v0.3.30
+    OVERRIDE_FIND_PACKAGE
+)
+
+fetchcontent_declare(
+    SuiteSparse
+    GIT_REPOSITORY https://github.com/DrTimothyAldenDavis/SuiteSparse.git
+    GIT_TAG v7.11.0
+    OVERRIDE_FIND_PACKAGE
+)
+fetchcontent_makeavailable(BLAS SuiteSparse)
+
+# And pull in JNI
+find_package(JNI)
+if (JNI_FOUND)
+    # Fixes odd AWT dependency
+    set (JNI_INCLUDE_DIRS ${JAVA_INCLUDE_PATH} ${JAVA_INCLUDE_PATH2})
+    message (STATUS "JNI_INCLUDE_DIRS=${JNI_INCLUDE_DIRS}")
+endif()
 
 # headers and sources
 set(
@@ -94,25 +132,11 @@ add_library(mrcal_jni SHARED ${INCLUDE_HPP} ${SRC_HPP} ${SRC_CPP})
 target_include_directories(mrcal_jni SYSTEM PUBLIC ${JNI_INCLUDE_DIRS} ${OPENCV_INCLUDE_PATH} mrcal libdogleg)
 add_dependencies(mrcal_jni generate_minimath)
 
-IF (WIN32)
-    find_package(CHOLMOD REQUIRED)
-    find_package(SuiteSparse_config REQUIRED)
-
-    target_link_libraries(mrcal_jni
-        ${OPENCV_LIB_PATH}
-        SuiteSparse::CHOLMOD suitesparseconfig lapack openblas)
-
-    # Add SuiteSparse include directories
-    target_include_directories(mrcal_jni PUBLIC "${CMAKE_BINARY_DIR}/vcpkg_installed/x64-windows/include/")
-    target_include_directories(mrcal_jni PUBLIC "${CMAKE_BINARY_DIR}/vcpkg_installed/x64-windows/include/suitesparse")
-
-    # Another hack wtf
-    target_link_directories(mrcal_jni PRIVATE "${CMAKE_BINARY_DIR}/vcpkg_installed/x64-windows/lib")
-ELSE()
-    target_link_libraries(mrcal_jni ${OPENCV_LIB_PATH} suitesparseconfig cholmod)
-    target_include_directories(mrcal_jni PUBLIC "/usr/include/suitesparse")
-ENDIF()
-
+target_link_libraries(mrcal_jni 
+    ${OPENCV_LIB_PATH}
+    SuiteSparse::CHOLMOD_static
+    SuiteSparse::SuiteSparseConfig_static
+)
 
 # Test script for checking our linker
 add_executable(mrcal_jni_test src/mrcal_test.cpp)
