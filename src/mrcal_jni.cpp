@@ -47,12 +47,12 @@ WPI_JNI_MAKEJARRAY(jdouble, Double)
 
 #undef WPI_JNI_MAKEJARRAY
 
-static constexpr std::string JNI_BOOL{"Z"};
-static constexpr std::string JNI_VOID{"V"};
-static constexpr std::string JNI_INT{"I"};
-static constexpr std::string JNI_DOUBLE{"D"};
-static constexpr std::string JNI_DOUBLEARR{"[D"};
-static constexpr std::string JNI_BOOLARR{"[Z"};
+static constexpr std::string_view JNI_BOOL{"Z"};
+static constexpr std::string_view JNI_VOID{"V"};
+static constexpr std::string_view JNI_INT{"I"};
+static constexpr std::string_view JNI_DOUBLE{"D"};
+static constexpr std::string_view JNI_DOUBLEARR{"[D"};
+static constexpr std::string_view JNI_BOOLARR{"[Z"};
 
 template<typename... Args>
 constexpr std::string jni_make_method_sig(std::string_view retval, Args&&... args) {
