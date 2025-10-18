@@ -28,18 +28,6 @@
 
 using namespace cv;
 
-class CholmodCtx {
-public:
-  cholmod_common Common, *cc;
-  CholmodCtx() {
-    cc = &Common;
-    cholmod_l_start(cc);
-  }
-
-  ~CholmodCtx() { cholmod_l_finish(cc); }
-};
-static CholmodCtx cctx;
-
 #define BARF(...) std::fprintf(stderr, __VA_ARGS__)
 
 bool lensmodel_one_validate_args(mrcal_lensmodel_t *mrcal_lensmodel,
@@ -351,7 +339,6 @@ mrcal_pose_t getSeedPose(const mrcal_point3_t *c_observations_board_pool,
 }
 
 mrcal_result::~mrcal_result() {
-  // cholmod_l_free_sparse(&Jt, cctx.cc);
   return;
 }
 

@@ -18,13 +18,6 @@
 extern "C" {
 // Seems to be missing C++ guards
 #include <mrcal.h>
-
-} // extern "C"
-
-// Seems like these people don't properly extern-c their headers either
-extern "C" {
-#include <suitesparse/SuiteSparse_config.h>
-#include <suitesparse/cholmod.h>
 } // extern "C"
 
 #include <memory>
