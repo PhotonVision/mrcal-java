@@ -62,7 +62,7 @@ set(NOFORTRAN ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Silence OpenBLAS/LAPACK warnings
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-macros -Wno-unused-function -Wno-unused-variable")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -w")
 set(BLA_VENDOR OpenBLAS)
 fetchcontent_declare(
     BLAS
