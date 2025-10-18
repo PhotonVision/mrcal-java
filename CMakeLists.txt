@@ -170,6 +170,7 @@ target_link_libraries(mrcal_jni
     SuiteSparse::CHOLMOD_static
     SuiteSparse::SuiteSparseConfig_static
     ${OPENBLAS_TARGET}
+    lapack
 )
 
 # Test script for checking our linker
