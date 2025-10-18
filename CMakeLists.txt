@@ -23,6 +23,8 @@ endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Keep this in sync with build.gradle and with 
+# https://github.com/PhotonVision/photonvision/blob/main/build.gradle
 set(OPENCV_YEAR "frc2025")
 set(OPENCV_VERSION "4.10.0-3")
 

@@ -10,6 +10,8 @@ on:
 
 env:
   BUILD_TYPE: Release
+  # Keep in sync with
+  # https://github.com/PhotonVision/photonvision/blob/main/.github/workflows/build.yml
   IMAGE_VERSION: v2026.0.3
 
 jobs:
