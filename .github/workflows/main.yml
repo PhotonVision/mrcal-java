@@ -102,9 +102,6 @@ jobs:
         java-version: 17
         distribution: temurin
 
-    - name: Setup cmake
-      uses: jwlawson/actions-setup-cmake@v1.13
-
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/cmake_build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DOPENCV_ARCH=windowsx86-64 -DCMAKE_CXX_COMPILER=clang-cl -DCMAKE_C_COMPILER=clang-cl -G Ninja
 
