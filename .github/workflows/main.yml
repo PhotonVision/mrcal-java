@@ -22,6 +22,8 @@ jobs:
         include:
           - os: ubuntu-22.04
             arch-name: linuxx86-64
+          - os: ubuntu-22.04-arm
+            arch-name: linuxarm64
 
     runs-on: ${{ matrix.os }}
     name: "mrcal-jni - Build - ${{ matrix.arch-name }}"
@@ -75,32 +77,6 @@ jobs:
         name: libmrcal-jar-${{ matrix.arch-name }}
         path: |
           ${{ github.workspace }}/build/libs/*.jar
-
-  build-raspi:
-    runs-on: ubuntu-latest
-    container: wpilib/aarch64-cross-ubuntu:bullseye-22.04
-    steps:
-    - uses: actions/checkout@v3
-      with:
-        submodules: 'true'
-        fetch-depth: 0
-    - name: Fetch tags
-      run: git fetch --tags --force
-    - run: git describe --tags
-    - run: |
-        cmake -B cmake_build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DOPENCV_ARCH=linuxarm64 -G Ninja --toolchain=/usr/local/toolchain-config.cmake
-        cmake --build cmake_build --config ${{env.BUILD_TYPE}} -j --target mrcal_jni
-
-    - run: |
-        ./gradlew build ${{ (startsWith(github.event_name, 'push') && 'publish') || '' }} -PArchOverride=linuxarm64
-      env:
-        ARTIFACTORY_API_KEY: ${{ secrets.ARTIFACTORY_API_KEY }}
-
-    - uses: actions/upload-artifact@v4
-      name: Upload jar
-      with:
-        name: libmrcal-jar-pi
-        path: ${{ github.workspace }}/build/libs/*.jar
 
   build-windows:
     runs-on: windows-latest
