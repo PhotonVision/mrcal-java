@@ -78,6 +78,7 @@ jobs:
 
   build-raspi:
     runs-on: ubuntu-latest
+    container: wpilib/aarch64-cross-ubuntu:bullseye-22.04
     steps:
     - uses: actions/checkout@v3
       with:
@@ -86,20 +87,9 @@ jobs:
     - name: Fetch tags
       run: git fetch --tags --force
     - run: git describe --tags
-    - uses: pguyot/arm-runner-action@v2
-      with:
-        base_image: https://github.com/PhotonVision/photon-image-modifier/releases/download/$IMAGE_VERSION/photonvision_raspi.img.xz
-        cpu: cortex-a7
-        image_additional_mb: 5000
-        bind_mount_repository: true
-        # Mark kernel packages as held to avoid automatic updates (which don't work in a chroot)
-        commands: |
-          sudo bash -c "echo 'deb [trusted=yes] http://mrcal.secretsauce.net/packages/jammy/public/ jammy main' >> /etc/apt/sources.list"
-          sudo apt-get update
-          sudo apt-mark hold 'linux-image-*'
-          sudo apt-get install --no-install-recommends cmake default-jdk default-jre git gcc g++ liblist-moreutils-perl ninja-build -y
-          cmake -B cmake_build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DOPENCV_ARCH=linuxarm64 -G Ninja
-          cmake --build cmake_build --config ${{env.BUILD_TYPE}} -j --target mrcal_jni
+    - run: |
+        cmake -B cmake_build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DOPENCV_ARCH=linuxarm64 -G Ninja --toolchain=/usr/local/toolchain-config.cmake
+        cmake --build cmake_build --config ${{env.BUILD_TYPE}} -j --target mrcal_jni
 
     - run: |
         ./gradlew build ${{ (startsWith(github.event_name, 'push') && 'publish') || '' }} -PArchOverride=linuxarm64
