@@ -44,9 +44,6 @@ jobs:
         java-version: 17
         distribution: temurin
 
-    - name: Setup cmake
-      uses: jwlawson/actions-setup-cmake@v1.13
-
     - name: Install deps
       run: |
         sudo bash -c "echo 'deb [trusted=yes] http://mrcal.secretsauce.net/packages/jammy/public/ jammy main' >> /etc/apt/sources.list"
