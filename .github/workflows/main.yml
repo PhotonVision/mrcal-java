@@ -57,7 +57,7 @@ jobs:
 
     - name: Build shared mrcal_jni
       # Build your program with the given configuration
-      run: cmake --build ${{github.workspace}}/cmake_build -j 5 --target mrcal_jni
+      run: cmake --build ${{github.workspace}}/cmake_build --target mrcal_jni
 
     - name: Gradle build
       # Build your program with the given configuration
