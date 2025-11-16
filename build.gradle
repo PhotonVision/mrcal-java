@@ -57,7 +57,7 @@ test {
     useJUnitPlatform()
 }
 
-ext.nativeName = wpilibTools.platformMapper.currentPlatform.platformName;
+ext.nativeName = wpilibTools.platformMapper.currentPlatform.platformName.replace('win', 'windows/').replace('mac', 'osx/').replace('linux', 'linux/').replace('x64', 'x86-64');
 ext.outputsFolder = file("$buildDir/outputs")
 
 println("Building for $nativeName")
@@ -65,13 +65,8 @@ println("Building for $nativeName")
 tasks.register('copyNativeLibrary', Sync) {
     from "${projectDir}/cmake_build/bin/"
     from "${projectDir}/cmake_build/lib/"
-    into "${outputsFolder}/nativelibraries/${nativeName}/"
+    into "${outputsFolder}/${nativeName}/"
     include "**/*.dll", "**/*.so"
-
-    // And flatten, since windows is stupid
-    eachFile {
-      path = name
-    }
     includeEmptyDirs = false
 
     build.dependsOn it
