@@ -45,7 +45,7 @@ jobs:
         distribution: temurin
 
     - name: Install deps
-      if: runner.os == "Linux"
+      if: runner.os == 'Linux'
       run: |
         sudo apt update
         sudo apt-get install -y cmake ninja-build gcc g++ liblist-moreutils-perl
@@ -75,7 +75,7 @@ jobs:
         path: ${{ github.workspace }}/build/libs/*.jar
 
   release:
-    needs: [build-host]
+    needs: build-host
     runs-on: ubuntu-22.04
     steps:
       # Download literally every single artifact. This also downloads client and docs,
