@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <malloc.h>
+#include <stdlib.h>
 #include <stdint.h>
 
 #include <algorithm>

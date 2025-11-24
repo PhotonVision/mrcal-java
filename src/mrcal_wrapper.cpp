@@ -32,7 +32,7 @@
 
 #include "mrcal_wrapper.h"
 
-#include <malloc.h>
+#include <stdlib.h>
 #include <stdint.h>
 
 #include <algorithm>

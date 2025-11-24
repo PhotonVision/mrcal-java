@@ -44,6 +44,7 @@ file(
     GLOB_RECURSE OPENCV_LIB_PATH
     "${opencv_lib_SOURCE_DIR}/**/*.lib"
     "${opencv_lib_SOURCE_DIR}/**/*.so*"
+    "${opencv_lib_SOURCE_DIR}/**/*.*.dylib"
 )
 set(OPENCV_INCLUDE_PATH ${opencv_header_SOURCE_DIR})
 message("Depending on opencv ${OPENCV_LIB_PATH}")
