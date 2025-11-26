@@ -24,6 +24,11 @@ jobs:
           - os: windows-latest
             arch-name: windowsx86-64
             extra-flags: -DCMAKE_CXX_COMPILER=clang-cl -DCMAKE_C_COMPILER=clang-cl
+          - os: macos-latest
+            arch-name: osxarm64
+          - os: macos-latest
+            arch-name: osxx86-64
+            extra-flags: -DCMAKE_OSX_ARCHITECTURES=x86-64
 
     runs-on: ${{ matrix.os }}
     name: "mrcal-jni - Build - ${{ matrix.arch-name }}"
