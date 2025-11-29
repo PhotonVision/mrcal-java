@@ -67,43 +67,49 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Silence OpenBLAS/LAPACK warnings
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -w")
-set(BLA_VENDOR OpenBLAS)
-FetchContent_Declare(
-    BLAS
-    GIT_REPOSITORY https://github.com/OpenMathLib/OpenBLAS.git
-    GIT_TAG v0.3.30
-    OVERRIDE_FIND_PACKAGE
-)
-FetchContent_MakeAvailable(BLAS)
-
-if(TARGET openblas)
-    set(OPENBLAS_TARGET openblas)
-    message(STATUS "Using openblas target")
-elseif(TARGET OpenBLAS)
-    set(OPENBLAS_TARGET OpenBLAS)
-    message(STATUS "Using OpenBLAS target")
-elseif(TARGET libopenblas)
-    set(OPENBLAS_TARGET libopenblas)
-    message(STATUS "Using libopenblas target")
-else()
-    # Fallback: find the library file manually
-    find_library(
-        OPENBLAS_LIB
-        NAMES openblas libopenblas
-        PATHS
-            ${openblas_external_BINARY_DIR}
-            ${openblas_external_BINARY_DIR}/lib
-            ${openblas_external_BINARY_DIR}/lib/Release
-        NO_DEFAULT_PATH
-        REQUIRED
+if(NOT APPLE)
+    set(BLA_VENDOR OpenBLAS)
+    FetchContent_Declare(
+        BLAS
+        GIT_REPOSITORY https://github.com/OpenMathLib/OpenBLAS.git
+        GIT_TAG v0.3.30
+        OVERRIDE_FIND_PACKAGE
     )
-    message(STATUS "Using OpenBLAS library file: ${OPENBLAS_LIB}")
-    add_library(openblas_imported STATIC IMPORTED)
-    set_target_properties(
+    FetchContent_MakeAvailable(BLAS)
+
+    if(TARGET openblas)
+        set(OPENBLAS_TARGET openblas)
+        message(STATUS "Using openblas target")
+    elseif(TARGET OpenBLAS)
+        set(OPENBLAS_TARGET OpenBLAS)
+        message(STATUS "Using OpenBLAS target")
+    elseif(TARGET libopenblas)
+        set(OPENBLAS_TARGET libopenblas)
+        message(STATUS "Using libopenblas target")
+    else()
+        # Fallback: find the library file manually
+        find_library(
+        OPENBLAS_LIB
+            NAMES openblas libopenblas
+            PATHS
+                ${openblas_external_BINARY_DIR}
+                ${openblas_external_BINARY_DIR}/lib
+                ${openblas_external_BINARY_DIR}/lib/Release
+            NO_DEFAULT_PATH
+            REQUIRED
+        )
+        message(STATUS "Using OpenBLAS library file: ${OPENBLAS_LIB}")
+        add_library(openblas_imported STATIC IMPORTED)
+        set_target_properties(
         openblas_imported
         PROPERTIES IMPORTED_LOCATION ${OPENBLAS_LIB}
     )
-    set(OPENBLAS_TARGET openblas_imported)
+        set(OPENBLAS_TARGET openblas_imported)
+    endif()
+else()
+    set(BLA_VENDOR Apple)
+    add_compile_definitions(ACCELERATE_NEW_LAPACK=1)
+    find_package(BLAS)
 endif()
 
 # Configure SuiteSparse to use BLAS
@@ -129,7 +135,11 @@ get_target_property(
     INTERFACE_LINK_LIBRARIES
 )
 message(STATUS "CHOLMOD links to: ${CHOLMOD_LIBS}")
-message(STATUS "BLAS is at: ${OPENBLAS_TARGET}")
+if(NOT APPLE)
+    message(STATUS "BLAS is at: ${OPENBLAS_TARGET}")
+else()
+    message(STATUS "BLAS is using Apple Accelerate")
+endif()
 
 # And pull in JNI
 find_package(JNI)
