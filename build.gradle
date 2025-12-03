@@ -65,7 +65,8 @@ println("Building for $nativeName")
 tasks.register('copyNativeLibrary', Sync) {
     from "${projectDir}/cmake_build/bin/"
     from "${projectDir}/cmake_build/lib/"
-    into "${outputsFolder}/${nativeName}/"
+    // Hardcode to shared because we're not building static ever
+    into "${outputsFolder}/${nativeName}/shared/"
     include "**/*.dll", "**/*.so"
     includeEmptyDirs = false
 
