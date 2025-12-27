@@ -19,6 +19,9 @@ modifiableFileExclude {
   \.webp$
   \.ico$
   gradlew
+  mrcal/
+  libdogleg/
+  vnlog/
 }
 
 includeProject {

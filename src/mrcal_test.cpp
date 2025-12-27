@@ -21,8 +21,11 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdio>
+#include <iostream>
+#include <map>
 #include <span>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 #include "mrcal_jni.h"
