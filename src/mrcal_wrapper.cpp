@@ -135,8 +135,8 @@ static std::unique_ptr<mrcal_result> mrcal_calibrate(
   int Ncameras_extrinsics = 0; // Seems to always be zero for single camera
   int Nframes =
       frames_rt_toref.size(); // Number of pictures of the object we've got
-  // mrcal_observation_point_triangulated_t *observations_point_triangulated =
-  //     NULL;
+  mrcal_observation_point_triangulated_t *observations_point_triangulated =
+      NULL;
 
   if (!lensmodel_one_validate_args(&mrcal_lensmodel, intrinsics, false)) {
     auto ret = std::make_unique<mrcal_result>();
@@ -146,8 +146,8 @@ static std::unique_ptr<mrcal_result> mrcal_calibrate(
 
   int Nmeasurements = mrcal_num_measurements(
       Nobservations_board, Nobservations_point,
-      // observations_point_triangulated,
-      // 0, // hard-coded to 0
+      observations_point_triangulated,
+      0, // hard-coded to 0
       calibration_object_width_n, calibration_object_height_n,
       Ncameras_intrinsics, Ncameras_extrinsics, Nframes, Npoints, Npoints_fixed,
       problem_selections, &mrcal_lensmodel);
