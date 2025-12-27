@@ -54,10 +54,12 @@ static constexpr std::string_view JNI_DOUBLE{"D"};
 static constexpr std::string_view JNI_DOUBLEARR{"[D"};
 static constexpr std::string_view JNI_BOOLARR{"[Z"};
 
-template<typename... Args>
-constexpr std::string jni_make_method_sig(std::string_view retval, Args&&... args) {
+template <typename... Args>
+constexpr std::string jni_make_method_sig(std::string_view retval,
+                                          Args &&...args) {
   std::string result = "(";
-  ((result += std::string_view(args)), ...);  // Ensure args are converted to string_view
+  ((result += std::string_view(args)),
+   ...); // Ensure args are converted to string_view
   result += ")";
   result += retval;
   return result;
