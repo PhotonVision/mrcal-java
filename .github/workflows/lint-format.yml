@@ -1,7 +1,7 @@
 name: Lint and Format
 
 on:
-  # Run on pushes to main and pushed tags, and on pull requests against main, but ignore the docs folder
+  # Run on pushes to main and pushed tags, and on pull requests against main
   push:
   pull_request:
 
@@ -20,8 +20,7 @@ jobs:
           git fetch --prune --unshallow
           git checkout -b pr
           git branch -f main origin/main
-      - name: Set up Python 3.8
-        uses: actions/setup-python@v4
+      - uses: actions/setup-python@v4
         with:
           python-version: 3.11
       - name: Install wpiformat
