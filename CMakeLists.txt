@@ -141,7 +141,7 @@ set(
     src/mrcal_wrapper.cpp
     src/mrcal_jni.cpp
     libdogleg/dogleg.c
-    mrcal/mrcal.c mrcal/cahvore.cc mrcal/poseutils-opencv.c mrcal/poseutils-uses-autodiff.cc mrcal/poseutils.c mrcal/poseutils-opencv.c mrcal/mrcal-opencv.c mrcal/triangulation.cc
+    mrcal/mrcal.c mrcal/cahvore.cc mrcal/poseutils-opencv.c mrcal/poseutils-uses-autodiff.cc mrcal/poseutils.c mrcal/poseutils-opencv.c mrcal/opencv.c mrcal/triangulation.cc
 )
 
 
