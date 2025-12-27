@@ -38,6 +38,8 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdio>
+#include <iostream>
+#include <memory>
 #include <random>
 #include <span>
 #include <stdexcept>

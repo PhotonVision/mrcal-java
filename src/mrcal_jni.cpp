@@ -20,9 +20,11 @@
 #include <algorithm>
 #include <cstdio>
 #include <exception>
+#include <iostream>
 #include <span>
 #include <sstream>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 #include "mrcal_wrapper.h"
