@@ -89,7 +89,7 @@ if(NOT APPLE)
     else()
         # Fallback: find the library file manually
         find_library(
-        OPENBLAS_LIB
+            OPENBLAS_LIB
             NAMES openblas libopenblas
             PATHS
                 ${openblas_external_BINARY_DIR}
@@ -101,9 +101,9 @@ if(NOT APPLE)
         message(STATUS "Using OpenBLAS library file: ${OPENBLAS_LIB}")
         add_library(openblas_imported STATIC IMPORTED)
         set_target_properties(
-        openblas_imported
-        PROPERTIES IMPORTED_LOCATION ${OPENBLAS_LIB}
-    )
+            openblas_imported
+            PROPERTIES IMPORTED_LOCATION ${OPENBLAS_LIB}
+        )
         set(OPENBLAS_TARGET openblas_imported)
     endif()
 else()
