@@ -57,7 +57,12 @@ test {
     useJUnitPlatform()
 }
 
-ext.nativeName = wpilibTools.platformMapper.currentPlatform.platformName.replace('win', 'windows/').replace('mac', 'osx/').replace('linux', 'linux/').replace('x64', 'x86-64');
+ext.nativeName = wpilibTools.platformMapper.currentPlatform.platformName
+    .replace('win', 'windows/')
+    .replace('macarm64', 'osx/universal')
+    .replace('mac', 'osx/')
+    .replace('linux', 'linux/')
+    .replace('x64', 'x86-64');
 ext.outputsFolder = file("$buildDir/outputs")
 
 println("Building for $nativeName")
@@ -67,7 +72,7 @@ tasks.register('copyNativeLibrary', Sync) {
     from "${projectDir}/cmake_build/lib/"
     // Hardcode to shared because we're not building static ever
     into "${outputsFolder}/${nativeName}/shared/"
-    include "**/*.dll", "**/*.so"
+    include "**/*.dll", "**/*.so", "**/*.dylib"
     includeEmptyDirs = false
 
     build.dependsOn it
