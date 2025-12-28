@@ -153,7 +153,7 @@ set(SRC_CPP
     mrcal/poseutils-uses-autodiff.cc
     mrcal/poseutils.c
     mrcal/poseutils-opencv.c
-    mrcal/mrcal-opencv.c
+    mrcal/opencv.c
     mrcal/triangulation.cc
 )
 
