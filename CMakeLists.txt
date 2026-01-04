@@ -206,6 +206,19 @@ target_link_libraries(
     lapack
 )
 
+# vnlog for the test script
+set(VNLOG_SRC_CPP
+    vnlog/b64_cencode.c
+    vnlog/vnlog-parser.c
+    vnlog/vnlog.c
+)
+add_library(vnlog ${VNLOG_SRC_CPP})
+target_include_directories(
+    vnlog
+    SYSTEM
+    PUBLIC ${PROJECT_SOURCE_DIR}/vnlog
+)
+
 # Test script for checking our linker
 add_executable(mrcal_jni_test src/mrcal_test.cpp)
 target_link_libraries(mrcal_jni_test PUBLIC mrcal_jni)
@@ -214,10 +227,10 @@ target_include_directories(
     SYSTEM
     PRIVATE ${PROJECT_SOURCE_DIR}/vnlog
 )
-# add_dependencies(mrcal_jni_test )
+add_dependencies(mrcal_jni_test mrcal_jni vnlog)
 target_link_libraries(
     mrcal_jni_test
-    PRIVATE ${OpenCV_LIBS} ${PROJECT_SOURCE_DIR}/vnlog/libvnlog.so
+    PRIVATE ${OpenCV_LIBS} vnlog
 )
 
 if(WITH_ASAN)
