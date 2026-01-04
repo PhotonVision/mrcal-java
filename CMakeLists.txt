@@ -208,7 +208,7 @@ target_link_libraries(
 
 # vnlog for the test script
 set(VNLOG_SRC_CPP vnlog/b64_cencode.c vnlog/vnlog-parser.c vnlog/vnlog.c)
-add_library(vnlog ${VNLOG_SRC_CPP})
+add_library(vnlog STATIC ${VNLOG_SRC_CPP})
 target_include_directories(vnlog SYSTEM PUBLIC ${PROJECT_SOURCE_DIR}/vnlog)
 
 # Test script for checking our linker
