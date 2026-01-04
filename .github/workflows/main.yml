@@ -47,13 +47,13 @@ jobs:
         java-version: 17
         distribution: temurin
 
-    - name: Install deps
+    - name: Install deps (Linux)
       if: runner.os == 'Linux'
       run: |
         sudo apt update
         sudo apt-get install -y cmake ninja-build gcc g++ liblist-moreutils-perl
 
-    - name: Install deps
+    - name: Install deps (macOS)
       if: runner.os == 'macOS'
       run: |
         sudo cpan -i List::MoreUtils
