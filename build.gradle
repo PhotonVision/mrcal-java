@@ -57,12 +57,10 @@ test {
     useJUnitPlatform()
 }
 
-ext.nativeName = wpilibTools.platformMapper.currentPlatform.platformName
-    .replace('win', 'windows/')
-    .replace('macarm64', 'osx/universal')
-    .replace('mac', 'osx/')
+ext.nativeName = wpilibTools.platformMapper.wpilibClassifier
+    .replace('windows', 'windows/')
+    .replace('osx', 'osx/')
     .replace('linux', 'linux/')
-    .replace('x64', 'x86-64');
 ext.outputsFolder = file("$buildDir/outputs")
 
 println("Building for $nativeName")
