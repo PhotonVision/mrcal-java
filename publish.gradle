@@ -1,6 +1,6 @@
 apply plugin: 'maven-publish'
 
-def nativeName = wpilibTools.platformMapper.currentPlatform.platformName.replace("macarm64", "macuniversal");
+def nativeName = wpilibTools.platformMapper.wpilibClassifier;
 def artifactGroupId = 'org.photonvision'
 def baseArtifactId = "photon-mrcal"
 
