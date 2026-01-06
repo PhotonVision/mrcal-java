@@ -32,8 +32,8 @@
 
 #include "mrcal_wrapper.h"
 
-#include <malloc.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #include <algorithm>
 #include <chrono>

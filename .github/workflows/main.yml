@@ -24,6 +24,9 @@ jobs:
           - os: windows-latest
             arch-name: windowsx86-64
             extra-flags: -DCMAKE_CXX_COMPILER=clang-cl -DCMAKE_C_COMPILER=clang-cl
+          - os: macos-latest
+            arch-name: osxuniversal
+            extra-flags: -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
 
     runs-on: ${{ matrix.os }}
     name: "mrcal-jni - Build - ${{ matrix.arch-name }}"
@@ -44,11 +47,15 @@ jobs:
         java-version: 17
         distribution: temurin
 
-    - name: Install deps
+    - name: Install deps (Linux)
       if: runner.os == 'Linux'
       run: |
         sudo apt update
         sudo apt-get install -y cmake ninja-build gcc g++ liblist-moreutils-perl
+
+    - name: Install deps (macOS)
+      if: runner.os == 'macOS'
+      run: sudo cpan -i List::MoreUtils
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.

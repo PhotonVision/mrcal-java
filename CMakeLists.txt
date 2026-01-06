@@ -44,6 +44,7 @@ file(
     GLOB_RECURSE OPENCV_LIB_PATH
     "${opencv_lib_SOURCE_DIR}/**/*.lib"
     "${opencv_lib_SOURCE_DIR}/**/*.so*"
+    "${opencv_lib_SOURCE_DIR}/**/*.*.dylib"
 )
 set(OPENCV_INCLUDE_PATH ${opencv_header_SOURCE_DIR})
 message("Depending on opencv ${OPENCV_LIB_PATH}")
@@ -66,43 +67,49 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Silence OpenBLAS/LAPACK warnings
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -w")
-set(BLA_VENDOR OpenBLAS)
-FetchContent_Declare(
-    BLAS
-    GIT_REPOSITORY https://github.com/OpenMathLib/OpenBLAS.git
-    GIT_TAG v0.3.30
-    OVERRIDE_FIND_PACKAGE
-)
-FetchContent_MakeAvailable(BLAS)
+if(NOT APPLE)
+    set(BLA_VENDOR OpenBLAS)
+    FetchContent_Declare(
+        BLAS
+        GIT_REPOSITORY https://github.com/OpenMathLib/OpenBLAS.git
+        GIT_TAG v0.3.30
+        OVERRIDE_FIND_PACKAGE
+    )
+    FetchContent_MakeAvailable(BLAS)
 
-if(TARGET openblas)
-    set(OPENBLAS_TARGET openblas)
-    message(STATUS "Using openblas target")
-elseif(TARGET OpenBLAS)
-    set(OPENBLAS_TARGET OpenBLAS)
-    message(STATUS "Using OpenBLAS target")
-elseif(TARGET libopenblas)
-    set(OPENBLAS_TARGET libopenblas)
-    message(STATUS "Using libopenblas target")
+    if(TARGET openblas)
+        set(OPENBLAS_TARGET openblas)
+        message(STATUS "Using openblas target")
+    elseif(TARGET OpenBLAS)
+        set(OPENBLAS_TARGET OpenBLAS)
+        message(STATUS "Using OpenBLAS target")
+    elseif(TARGET libopenblas)
+        set(OPENBLAS_TARGET libopenblas)
+        message(STATUS "Using libopenblas target")
+    else()
+        # Fallback: find the library file manually
+        find_library(
+            OPENBLAS_LIB
+            NAMES openblas libopenblas
+            PATHS
+                ${openblas_external_BINARY_DIR}
+                ${openblas_external_BINARY_DIR}/lib
+                ${openblas_external_BINARY_DIR}/lib/Release
+            NO_DEFAULT_PATH
+            REQUIRED
+        )
+        message(STATUS "Using OpenBLAS library file: ${OPENBLAS_LIB}")
+        add_library(openblas_imported STATIC IMPORTED)
+        set_target_properties(
+            openblas_imported
+            PROPERTIES IMPORTED_LOCATION ${OPENBLAS_LIB}
+        )
+        set(OPENBLAS_TARGET openblas_imported)
+    endif()
 else()
-    # Fallback: find the library file manually
-    find_library(
-        OPENBLAS_LIB
-        NAMES openblas libopenblas
-        PATHS
-            ${openblas_external_BINARY_DIR}
-            ${openblas_external_BINARY_DIR}/lib
-            ${openblas_external_BINARY_DIR}/lib/Release
-        NO_DEFAULT_PATH
-        REQUIRED
-    )
-    message(STATUS "Using OpenBLAS library file: ${OPENBLAS_LIB}")
-    add_library(openblas_imported STATIC IMPORTED)
-    set_target_properties(
-        openblas_imported
-        PROPERTIES IMPORTED_LOCATION ${OPENBLAS_LIB}
-    )
-    set(OPENBLAS_TARGET openblas_imported)
+    set(BLA_VENDOR Apple)
+    add_compile_definitions(ACCELERATE_NEW_LAPACK=1)
+    find_package(BLAS)
 endif()
 
 # Configure SuiteSparse to use BLAS
@@ -128,7 +135,11 @@ get_target_property(
     INTERFACE_LINK_LIBRARIES
 )
 message(STATUS "CHOLMOD links to: ${CHOLMOD_LIBS}")
-message(STATUS "BLAS is at: ${OPENBLAS_TARGET}")
+if(NOT APPLE)
+    message(STATUS "BLAS is at: ${OPENBLAS_TARGET}")
+else()
+    message(STATUS "BLAS is using Apple Accelerate")
+endif()
 
 # And pull in JNI
 find_package(JNI)
@@ -195,6 +206,11 @@ target_link_libraries(
     lapack
 )
 
+# vnlog for the test script
+set(VNLOG_SRC_CPP vnlog/b64_cencode.c vnlog/vnlog-parser.c vnlog/vnlog.c)
+add_library(vnlog STATIC ${VNLOG_SRC_CPP})
+target_include_directories(vnlog SYSTEM PUBLIC ${PROJECT_SOURCE_DIR}/vnlog)
+
 # Test script for checking our linker
 add_executable(mrcal_jni_test src/mrcal_test.cpp)
 target_link_libraries(mrcal_jni_test PUBLIC mrcal_jni)
@@ -203,11 +219,8 @@ target_include_directories(
     SYSTEM
     PRIVATE ${PROJECT_SOURCE_DIR}/vnlog
 )
-# add_dependencies(mrcal_jni_test )
-target_link_libraries(
-    mrcal_jni_test
-    PRIVATE ${OpenCV_LIBS} ${PROJECT_SOURCE_DIR}/vnlog/libvnlog.so
-)
+add_dependencies(mrcal_jni_test mrcal_jni vnlog)
+target_link_libraries(mrcal_jni_test PRIVATE ${OpenCV_LIBS} vnlog)
 
 if(WITH_ASAN)
     target_link_libraries(

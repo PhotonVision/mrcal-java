@@ -35,6 +35,7 @@
 extern "C" {
 // Seems to be missing C++ guards
 #include <mrcal.h>
+
 } // extern "C"
 
 #include <memory>
