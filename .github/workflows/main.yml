@@ -55,8 +55,7 @@ jobs:
 
     - name: Install deps (macOS)
       if: runner.os == 'macOS'
-      run: |
-        sudo cpan -i List::MoreUtils
+      run: sudo cpan -i List::MoreUtils
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
