@@ -14,15 +14,15 @@ jobs:
     name: "wpiformat"
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Fetch all history and metadata
         run: |
           git fetch --prune --unshallow
           git checkout -b pr
           git branch -f main origin/main
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v6
         with:
-          python-version: 3.11
+          python-version: 3.14
       - name: Install wpiformat
         run: pip3 install wpiformat==2025.79
       - name: Run

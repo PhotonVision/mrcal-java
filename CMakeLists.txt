@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.24)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 project(mrcal_jni LANGUAGES C CXX VERSION 1.0.0)
 
@@ -62,6 +62,13 @@ set(USE_LOCKING ON)
 set(USE_THREAD OFF)
 set(NOFORTRAN ON)
 
+# ARMv8 is what our coprocessors run, but not the CI machines. Ensure we don't accidentally include ARMv9 instructions
+if(
+    CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64"
+    AND CMAKE_SYSTEM_NAME STREQUAL "Linux"
+)
+    set(TARGET ARMV8)
+endif()
 # We need PIC for this to work as a shared library
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
@@ -83,28 +90,6 @@ if(NOT APPLE)
     elseif(TARGET OpenBLAS)
         set(OPENBLAS_TARGET OpenBLAS)
         message(STATUS "Using OpenBLAS target")
-    elseif(TARGET libopenblas)
-        set(OPENBLAS_TARGET libopenblas)
-        message(STATUS "Using libopenblas target")
-    else()
-        # Fallback: find the library file manually
-        find_library(
-            OPENBLAS_LIB
-            NAMES openblas libopenblas
-            PATHS
-                ${openblas_external_BINARY_DIR}
-                ${openblas_external_BINARY_DIR}/lib
-                ${openblas_external_BINARY_DIR}/lib/Release
-            NO_DEFAULT_PATH
-            REQUIRED
-        )
-        message(STATUS "Using OpenBLAS library file: ${OPENBLAS_LIB}")
-        add_library(openblas_imported STATIC IMPORTED)
-        set_target_properties(
-            openblas_imported
-            PROPERTIES IMPORTED_LOCATION ${OPENBLAS_LIB}
-        )
-        set(OPENBLAS_TARGET openblas_imported)
     endif()
 else()
     set(BLA_VENDOR Apple)
@@ -142,12 +127,7 @@ else()
 endif()
 
 # And pull in JNI
-find_package(JNI)
-if(JNI_FOUND)
-    # Fixes odd AWT dependency
-    set(JNI_INCLUDE_DIRS ${JAVA_INCLUDE_PATH} ${JAVA_INCLUDE_PATH2})
-    message(STATUS "JNI_INCLUDE_DIRS=${JNI_INCLUDE_DIRS}")
-endif()
+find_package(JNI REQUIRED COMPONENTS JVM)
 
 # headers and sources
 set(INCLUDE_HPP)

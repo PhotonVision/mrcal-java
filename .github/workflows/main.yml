@@ -32,7 +32,7 @@ jobs:
     name: "mrcal-jni - Build - ${{ matrix.arch-name }}"
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
       with:
         submodules: 'true'
         fetch-depth: 0
@@ -92,7 +92,7 @@ jobs:
       - run: find
 
       # Push to dev release on pushes to master
-      - uses: pyTooling/Actions/releaser@r0
+      - uses: pyTooling/Actions/releaser@r6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: 'Dev'
