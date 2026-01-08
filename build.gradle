@@ -1,8 +1,8 @@
 plugins {
     id "java"
-    id 'edu.wpi.first.WpilibTools' version '1.3.0'
+    id 'org.photonvision.tools.WpilibTools' version '2.3.1-photon'
     id "edu.wpi.first.wpilib.repositories.WPILibRepositoriesPlugin" version "2020.2"
-    id "com.diffplug.spotless" version "6.22.0"
+    id "com.diffplug.spotless" version "8.1.0"
 }
 
 allprojects {
@@ -24,8 +24,8 @@ ext {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
 }
 
 dependencies {
@@ -57,10 +57,7 @@ test {
     useJUnitPlatform()
 }
 
-ext.nativeName = wpilibTools.platformMapper.wpilibClassifier
-    .replace('windows', 'windows/')
-    .replace('osx', 'osx/')
-    .replace('linux', 'linux/')
+def nativeName = wpilibTools.platformMapper.platformPath
 ext.outputsFolder = file("$buildDir/outputs")
 
 println("Building for $nativeName")
