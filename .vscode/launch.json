@@ -23,23 +23,11 @@
       "name": "Python debug calibrate cameras",
       "type": "debugpy",
       "request": "launch",
-      "program": "/usr/bin/mrcal-calibrate-cameras",
+      "program": "mrcal-show-projection-uncertainty",
       "console": "integratedTerminal",
       "cwd": "/home/matt/mrcal_debug_tmp/output_will/images-trimmed",
       "args": [
-        "--corners-cache",
-        "corners.vnl",
-        "--lensmodel",
-        "LENSMODEL_OPENCV8",
-        "--focal",
-        "1200",
-        "--object-spacing",
-        "0.03",
-        "--object-width-n",
-        "18",
-        "--object-height-n",
-        "13",
-        "*.png"
+        "./camera-0.cameramodel", "--cbmax","10","--unset","key"
       ],
       "justMyCode": false
     },

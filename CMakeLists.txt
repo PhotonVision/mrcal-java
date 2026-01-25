@@ -21,6 +21,7 @@ set(OPENCV_VERSION "4.10.0-3")
 
 # type can be "", "debug", "static", or "staticdebug"
 set(OPENCV_TYPE "")
+set(OPENCV_ARCH, "linuxx86-64")
 
 # Download opencv, and save the path
 include(FetchContent)
