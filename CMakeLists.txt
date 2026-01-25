@@ -5,7 +5,7 @@ project(mrcal_jni LANGUAGES C CXX VERSION 1.0.0)
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 
 # C++
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -180,11 +180,13 @@ add_dependencies(mrcal_jni generate_minimath)
 
 target_link_libraries(
     mrcal_jni
+    PUBLIC
     ${OPENCV_LIB_PATH}
     SuiteSparse::CHOLMOD_static
     SuiteSparse::SuiteSparseConfig_static
     ${OPENBLAS_TARGET}
     lapack
+    fmt
 )
 
 # vnlog for the test script

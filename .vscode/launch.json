@@ -25,7 +25,7 @@
       "request": "launch",
       "program": "mrcal-show-projection-uncertainty",
       "console": "integratedTerminal",
-      "cwd": "/home/matt/mrcal_debug_tmp/output_will/images-trimmed",
+      "cwd": "${workspaceFolder}/mrcal",
       "args": [
         "./camera-0.cameramodel", "--cbmax","10","--unset","key"
       ],

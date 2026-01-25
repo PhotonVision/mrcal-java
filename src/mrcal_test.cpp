@@ -30,6 +30,7 @@
 
 #include "mrcal_jni.h"
 #include "mrcal_wrapper.h"
+#include "mrcal-uncertainty.hpp"
 
 using namespace cv;
 
@@ -187,6 +188,8 @@ int homography_test() {
 
 int main() {
   // for (int i = 0; i < 1e6; i++) {
-  homography_test();
+  // homography_test();
   // }
+
+  compute_uncertainty();
 }
