@@ -59,6 +59,10 @@ std::vector<mrcal_point2_t> sample_imager(Size numSamples, Size imagerSize) {
     return samples;
 }
 
+void projection_uncertainty(pcam) {
+
+}
+
 void compute_uncertainty() {
     mrcal_lensmodel_t lensmodel;
     lensmodel.type = MRCAL_LENSMODEL_OPENCV8;
@@ -67,15 +71,31 @@ void compute_uncertainty() {
 
     // hard code some stuff
     auto q = sample_imager({60, 40}, {1280, 720});
-    fmt::print("Samples: {}, len={}\n", q, q.size());
+    fmt::print("Samples: {}, len={}\n", q[q.size()-1], q.size());
 
     // and unproject
     std::vector<mrcal_point3_t> out;
-    out.reserve(q.size());
+    out.resize(q.size());
     mrcal_unproject(
         out.data(), q.data(), q.size(),
         &lensmodel, intrinsics.data()
     );
-    fmt::print("Unprojected: {}, len={}\n", out, out.size());
+
+    // Always normalize, setting rows with any non-finite elements to zero
+    for (auto& p : out) {
+        double nrm = std::sqrt(p.x*p.x + p.y*p.y + p.z*p.z);
+        if (std::isfinite(nrm) && nrm > 0) {
+            p.x /= nrm;
+            p.y /= nrm;
+            p.z /= nrm;
+        }
+        else {
+            p.x = 0;
+            p.y = 0;
+            p.z = 0;
+        }
+    }
+
+    fmt::print("Unprojected: {}, len={}\n", out[out.size()-1], out.size());
 }
     

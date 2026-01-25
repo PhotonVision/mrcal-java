@@ -53,7 +53,8 @@
           "text": "-gdb-set disassembly-flavor intel",
           "ignoreFailures": true
         }
-      ]
+      ],
+      "preLaunchTask": "build-test"
     },
     {
       "name": "Python: Current File",
