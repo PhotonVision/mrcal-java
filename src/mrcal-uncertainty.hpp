@@ -8,6 +8,18 @@
 
 using namespace cv;
 
+template <>
+struct fmt::formatter<mrcal_point3_t> {
+    constexpr auto parse(format_parse_context& ctx) {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    auto format(const mrcal_point3_t& p, FormatContext& ctx) const {
+        return fmt::format_to(ctx.out(), "({}, {}, {})", p.x, p.y, p.z);
+    }
+};
+
 std::vector<mrcal_point3_t> sample_imager(Size numSamples, Size imagerSize) {
     // using std::ranges, sample the imager with numSamples points per axis
     std::vector<mrcal_point3_t> samples;
