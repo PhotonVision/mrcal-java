@@ -27,7 +27,7 @@
       "console": "integratedTerminal",
       "cwd": "${workspaceFolder}/mrcal",
       "args": [
-        "./camera-0.cameramodel", "--cbmax","10","--unset","key"
+        "./camera-0.cameramodel", "--cbmax","10","--unset","key","--gridn","2","2"
       ],
       "justMyCode": false
     },
