@@ -86,7 +86,7 @@ std::vector<double> _dq_db_projection_uncertainty(
     mrcal_point3_t pcam,
     mrcal_lensmodel_t lensmodel,
     std::vector<mrcal_pose_t>& rt_ref_frame,
-    int Nstate,
+    int Nstate, int istate_frames0,
     std::vector<double>& intrinsics)
 {
     // project with gradients
@@ -200,6 +200,60 @@ std::vector<double> _dq_db_projection_uncertainty(
         dq_dframes[pose] = dq_dpref * dpref_dframes[pose];
     }
 
+    // TODO populate dq_db_slice_frames -> dq_db
+    /*
+    Python code: 
+
+            # shape is either of
+            #    (..., Nframes, Ncameras_extrinsics, 2, 6)
+            #    (..., Nframes, Ncameras_extrinsics, 2, 3)
+            # depending on atinfinity
+            dq_dframes = \
+                nps.matmult(# shape (...,          Nframes=1, Ncameras_extrinsics, 2, 3)
+                            nps.dummy(dq_dpref,    -4),
+                            # shape (...,          Nframes,   Ncameras_extrinsics, 3, 6)
+                            dpref_dframes)
+
+            if not separate_output_per_geometry:
+
+                # shape (..., 2, Nframes,6)
+                dq_db_slice_frames = \
+                    dq_db[...,
+                          istate_frames0:
+                          istate_frames0 + Nframes*6]. \
+                          reshape(dq_db.shape[:-1] + (Nframes,6) )
+                if not atinfinity:
+                    # shape (..., 2, Nframes,6)
+                    dq_db_slice_frames[...] = \
+                        nps.xchg( np.mean(dq_dframes, axis=-3),
+                                  -2, -3 ) / Nframes
+                else:
+                    # shape (..., 2, Nframes,3)
+                    dq_db_slice_frames[...,:3] = \
+                        nps.xchg( np.mean(dq_dframes, axis=-3),
+                                  -2, -3 ) / Nframes
+
+    */
+    
+    // Calculate mean of dq_dframes across all frames
+    Eigen::Matrix<double, 2, 3> dq_dframes_mean = Eigen::Matrix<double, 2, 3>::Zero();
+    for (const auto& dqf : dq_dframes)
+    {
+        dq_dframes_mean += dqf;
+    }
+    dq_dframes_mean /= Nboards;
+    
+    // Populate dq_db_slice_frames
+    // For at_infinity case (which we're using), we need 3 columns (position only)
+    // Shape: (2, Nboards, 3) -> reshape and place into dq_db
+    for (size_t frame = 0; frame < Nboards; frame++)
+    {
+        // Each frame has 6 DOF (or 3 for at_infinity)
+        int frame_start = istate_frames0 + frame * 6;
+        // For at_infinity, only populate the first 3 columns (translation)
+        dq_db.block(0, frame_start, 2, 3) = dq_dframes_mean / Nboards;
+    }
+
     std::cout << "dq_db:\n" << dq_db << "\n";
     std::cout << "dq_dpref:\n" << dq_dpref << "\n";
     std::cout << "p_frames:\n" << p_frames << "\n";
@@ -215,6 +269,9 @@ std::vector<double> _dq_db_projection_uncertainty(
     for (const auto &dqf : dq_dframes)
         std::cout << "[" << dqf << "]\n";
     std::cout << "}\n";
+
+    Eigen::IOFormat CommaFmt(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n", "[", "]");
+    std::cout << "dq_db final:\n" << dq_db.format(CommaFmt) << "\n";
 
     return {};
 }
@@ -252,6 +309,17 @@ bool projection_uncertainty(mrcal_point3_t pcam,
         problem_selections,
         &lensmodel);
 
+    int istate_frames0 = mrcal_state_index_frames(
+        0, // iframe
+        1, // Ncameras_intrinsics
+        0, // Ncameras_extrinsics
+        6, // Nframes
+        0, // Npoints
+        0, // Npoints_fixed
+        6, // Nobservations_board
+        problem_selections,
+        &lensmodel);
+
     // hard code reference frame transformations
     std::vector<mrcal_pose_t> rt_ref_frames {
         {-0.13982929, -0.37331785, -0.01785786, -0.15373499, -0.13686309, 0.59757725},
@@ -262,7 +330,7 @@ bool projection_uncertainty(mrcal_point3_t pcam,
         {-0.14950876, -0.05920069,  0.0375357,   0.08856689, -0.10811448,  0.59142776}
     };
 
-    auto dq_db{_dq_db_projection_uncertainty(pcam, lensmodel, rt_ref_frames, Nstate, intrinsics)};
+    auto dq_db{_dq_db_projection_uncertainty(pcam, lensmodel, rt_ref_frames, Nstate, istate_frames0, intrinsics)};
     return _propagate_calibration_uncertainty();
 }
 
