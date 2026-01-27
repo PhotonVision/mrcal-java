@@ -153,7 +153,7 @@ std::vector<double> _dq_db_projection_uncertainty(
     }
 
     // method is always mean-pcam
-    auto dq_dpref = dq_dpcam * dpcam_dpref; 
+    Eigen::Matrix<double, 2, 3> dq_dpref = dq_dpcam * dpcam_dpref; 
 
     // calculate p_frames
     Eigen::Matrix<double, Eigen::Dynamic, 3, Eigen::RowMajor> p_frames(Nboards, 3);
@@ -175,10 +175,35 @@ std::vector<double> _dq_db_projection_uncertainty(
 
     }
 
+    // and rotate to yield dpref_dframes
+    std::vector<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>> dpref_dframes;
+    dpref_dframes.resize(Nboards);
+    for (size_t pose = 0; pose < Nboards; pose++)
+    {
+        mrcal_point3_t dummy;
+        mrcal_rotate_point_r(
+            // out
+            dummy.xyz,
+            dpref_dframes[pose].data(),
+            NULL,
+            // in
+            rt_ref_frame[pose].r.xyz,
+            p_frames.row(pose).data()
+        );
+    }
+
 
     std::cout << "dq_db:\n" << dq_db << "\n";
     std::cout << "dq_dpref:\n" << dq_dpref << "\n";
     std::cout << "p_frames:\n" << p_frames << "\n";
+    std::cout << "dpcam_dframes:{\n";
+    for (const auto &dpf : dpref_dframes)
+        std::cout << dpf << "\n";
+    std::cout << "}\n";
+    std::cout << "dpref_dframes:{\n";
+    for (const auto &dpf : dpref_dframes)
+        std::cout << "[" << dpf << "]\n";
+    std::cout << "}\n";
 
     return {};
 }
