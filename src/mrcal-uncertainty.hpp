@@ -85,9 +85,9 @@ std::vector<mrcal_point2_t> sample_imager(Size numSamples, Size imagerSize)
 Eigen::Matrix<double, 2, Eigen::Dynamic> _dq_db_projection_uncertainty(
     mrcal_point3_t pcam,
     mrcal_lensmodel_t lensmodel,
-    std::vector<mrcal_pose_t>& rt_ref_frame,
+    std::vector<mrcal_pose_t> &rt_ref_frame,
     int Nstate, int istate_frames0,
-    std::vector<double>& intrinsics)
+    std::vector<double> &intrinsics)
 {
     // project with gradients
     // model_analysis.py:1067
@@ -97,7 +97,7 @@ Eigen::Matrix<double, 2, Eigen::Dynamic> _dq_db_projection_uncertainty(
     bool ret = mrcal_project(
         // out
         &q,
-        reinterpret_cast<mrcal_point3_t*>(dq_dpcam.data()),
+        reinterpret_cast<mrcal_point3_t *>(dq_dpcam.data()),
         dq_dintrinsics.data(),
         // in
         &pcam, 1,
@@ -109,10 +109,10 @@ Eigen::Matrix<double, 2, Eigen::Dynamic> _dq_db_projection_uncertainty(
     }
 
     // number of boards
-    const size_t Nboards {rt_ref_frame.size()};
+    const size_t Nboards{rt_ref_frame.size()};
 
     // p_ref = pcam rotated by r (always zero1)
-    Eigen::Matrix<double, 1, 3> p_ref {pcam.x, pcam.y, pcam.z};
+    Eigen::Matrix<double, 1, 3> p_ref{pcam.x, pcam.y, pcam.z};
 
     // fmt::print("_dq_db_projection_uncertainty: ==========\n");
     // fmt::print("q={}\n", q);
@@ -130,13 +130,12 @@ Eigen::Matrix<double, 2, Eigen::Dynamic> _dq_db_projection_uncertainty(
     dq_db.leftCols(intrinsics.size()) = dq_dintrinsics_eigen;
 
     // determine dpcam_dr and dpcamp_dpref
-    Eigen::Matrix<double, 3, 3> dpcam_dpref; //dxout/dxin
-    Eigen::Matrix<double, 3, 3> dpcam_dr; // dx_out/dr
+    Eigen::Matrix<double, 3, 3> dpcam_dpref; // dxout/dxin
+    Eigen::Matrix<double, 3, 3> dpcam_dr;    // dx_out/dr
     {
         // HACK -- hard-coded to origin
         Eigen::Matrix<double, 1, 6> rt_cam_ref;
         rt_cam_ref.setZero();
-
 
         // output arrays
         mrcal_point3_t rotated_p_ref;
@@ -148,12 +147,11 @@ Eigen::Matrix<double, 2, Eigen::Dynamic> _dq_db_projection_uncertainty(
             dpcam_dpref.data(),
             // in
             rt_cam_ref.data(),
-            p_ref.data()
-        );
+            p_ref.data());
     }
 
     // method is always mean-pcam
-    Eigen::Matrix<double, 2, 3> dq_dpref = dq_dpcam * dpcam_dpref; 
+    Eigen::Matrix<double, 2, 3> dq_dpref = dq_dpcam * dpcam_dpref;
 
     // calculate p_frames
     Eigen::Matrix<double, Eigen::Dynamic, 3, Eigen::RowMajor> p_frames(Nboards, 3);
@@ -165,14 +163,12 @@ Eigen::Matrix<double, 2, Eigen::Dynamic> _dq_db_projection_uncertainty(
         {
             mrcal_rotate_point_r_inverted(
                 // out
-                p_frames.row(pose).data(), 
+                p_frames.row(pose).data(),
                 NULL, NULL,
                 // in
                 rt_ref_frame[pose].r.xyz,
-                p_ref.data()
-            );
+                p_ref.data());
         }
-
     }
 
     // and rotate to yield dpref_dframes
@@ -188,8 +184,7 @@ Eigen::Matrix<double, 2, Eigen::Dynamic> _dq_db_projection_uncertainty(
             NULL,
             // in
             rt_ref_frame[pose].r.xyz,
-            p_frames.row(pose).data()
-        );
+            p_frames.row(pose).data());
     }
 
     // Calculate dq_dframes
@@ -199,7 +194,7 @@ Eigen::Matrix<double, 2, Eigen::Dynamic> _dq_db_projection_uncertainty(
     {
         dq_dframes[pose] = dq_dpref * dpref_dframes[pose];
     }
-    
+
     // Populate dq_db_slice_frames
     // Shape after mean and xchg: (2, 3) for at_infinity
     // Each frame gets 3 DOF (translation only)
@@ -230,16 +225,129 @@ Eigen::Matrix<double, 2, Eigen::Dynamic> _dq_db_projection_uncertainty(
     // std::cout << "}\n";
 
     Eigen::IOFormat CommaFmt(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n", "", "");
-    std::cout << "dq_db final:\n" << dq_db.format(CommaFmt) << "\n";
+    std::cout << "dq_db final:\n"
+              << dq_db.format(CommaFmt) << "\n";
 
     return dq_db;
 }
 
-bool _propagate_calibration_uncertainty(Eigen::Matrix<double, 2, Eigen::Dynamic> dF_dbunpacked)
+void _observed_pixel_uncertainty_from_inputs()
 {
-    // what = worstdirection-stdev
+    // model_analysis.py:511
+}
+
+bool _propagate_calibration_uncertainty(Eigen::Matrix<double, 2, Eigen::Dynamic> dF_dbunpacked,
+                                        mrcal_problem_selections_t &problem_selections,
+                                        mrcal_lensmodel_t &lensmodel)
+{
+    /* what = worstdirection-stdev */
 
     // pack dF_dbunpacked into dF_dbpacked via mrcal_unpack_state (????)
+
+    // void mrcal_unpack_solver_state_vector( // out, in
+    //                                        double* b, // unitless state on input,
+    //                                                   // scaled, meaningful state on
+    //                                                   // output
+
+    //                                        // in
+    //                                        int Ncameras_intrinsics, int Ncameras_extrinsics,
+    //                                        int Nframes,
+    //                                        int Npoints, int Npoints_fixed, int Nobservations_board,
+    //                                        mrcal_problem_selections_t problem_selections,
+    //                                        const mrcal_lensmodel_t* lensmodel);
+    mrcal_unpack_solver_state_vector(
+        // out, in. modified in place
+        dF_dbunpacked.data(),
+
+        // in
+        1, // Ncameras_intrinsics
+        0, // Ncameras_extrinsics
+        6, // Nframes
+        0, // Npoints
+        0, // Npoints_fixed
+        6, // Nobservations_board
+        problem_selections,
+        &lensmodel);
+
+    // Get x, jpacked, factorization
+
+// bool mrcal_optimizer_callback(// out
+
+//                              // These output pointers may NOT be NULL, unlike
+//                              // their analogues in mrcal_optimize()
+
+//                              // Shape (Nstate,)
+//                              double* b_packed,
+//                              // used only to confirm that the user passed-in the buffer they
+//                              // should have passed-in. The size must match exactly
+//                              int buffer_size_b_packed,
+
+//                              // Shape (Nmeasurements,)
+//                              double* x,
+//                              // used only to confirm that the user passed-in the buffer they
+//                              // should have passed-in. The size must match exactly
+//                              int buffer_size_x,
+
+//                              // output Jacobian. May be NULL if we don't need
+//                              // it. This is the unitless Jacobian, used by the
+//                              // internal optimization routines
+//                              struct cholmod_sparse_struct* Jt,
+
+
+//                              // in
+
+//                              // The number of intrinsics parameters varies,
+//                              // depending on lensmodel
+//                              const double*             intrinsics,         // Ncameras_intrinsics * NlensParams
+//                              const mrcal_pose_t*       rt_cam_ref,         // Ncameras_extrinsics of these. Transform FROM the reference frame
+//                              const mrcal_pose_t*       rt_ref_frame,       // Nframes of these.    Transform TO the reference frame
+//                              const mrcal_point3_t*     points,             // Npoints of these.    In the reference frame
+//                              const mrcal_calobject_warp_t* calobject_warp, // 1 of these. May be NULL if !problem_selections.do_optimize_calobject_warp
+
+//                              int Ncameras_intrinsics, int Ncameras_extrinsics, int Nframes,
+//                              int Npoints, int Npoints_fixed, // at the end of points[]
+
+//                              const mrcal_observation_board_t* observations_board,
+//                              const mrcal_observation_point_t* observations_point,
+//                              int Nobservations_board,
+//                              int Nobservations_point,
+
+//                              const mrcal_observation_point_triangulated_t* observations_point_triangulated,
+//                              int Nobservations_point_triangulated,
+
+//                              // All the board pixel observations, in an array of shape
+//                              //
+//                              // ( Nobservations_board,
+//                              //   calibration_object_height_n,
+//                              //   calibration_object_width_n )
+//                              //
+//                              // .x, .y are the pixel observations .z is the
+//                              // weight of the observation. Most of the weights
+//                              // are expected to be 1.0. Less precise
+//                              // observations have lower weights.
+//                              //
+//                              // .z<0 indicates that this is an outlier
+//                              const mrcal_point3_t* observations_board_pool,
+
+//                              // Same this, but for discrete points. Array of shape
+//                              //
+//                              // ( Nobservations_point,)
+//                              const mrcal_point3_t* observations_point_pool,
+
+//                              const mrcal_lensmodel_t* lensmodel,
+//                              const int* imagersizes, // Ncameras_intrinsics*2 of these
+//                              mrcal_problem_selections_t       problem_selections,
+//                              const mrcal_problem_constants_t* problem_constants,
+//                              double calibration_object_spacing,
+//                              int calibration_object_width_n,
+//                              int calibration_object_height_n,
+//                              bool verbose);
+
+    {
+        bool success = mrcal_optimizer_callback(
+            
+        );
+    }
 
     // estimate observed_pixel_uncertainty via _observed_pixel_uncertainty_from_inputs()
 
@@ -290,17 +398,16 @@ bool projection_uncertainty(mrcal_point3_t pcam,
         &lensmodel);
 
     // hard code reference frame transformations
-    std::vector<mrcal_pose_t> rt_ref_frames {
+    std::vector<mrcal_pose_t> rt_ref_frames{
         {-0.13982929, -0.37331785, -0.01785786, -0.15373499, -0.13686309, 0.59757725},
-        {-0.18951098, -0.50825451, 0.02212706, -0.26111978, -0.10816078, 0.58305005}, 
-        {-0.09580704, -0.4029582, -0.01730795, -0.17221784, -0.17518785, 0.58390618}, 
-        {-0.08038678, -0.21667501, -0.00719197, -0.05143006, -0.17069075, 0.59817879}, 
-        {-0.11562071, -0.19945448, -0.02150643, -0.02264116, -0.15749109, 0.59493056}, 
-        {-0.14950876, -0.05920069,  0.0375357,   0.08856689, -0.10811448,  0.59142776}
-    };
+        {-0.18951098, -0.50825451, 0.02212706, -0.26111978, -0.10816078, 0.58305005},
+        {-0.09580704, -0.4029582, -0.01730795, -0.17221784, -0.17518785, 0.58390618},
+        {-0.08038678, -0.21667501, -0.00719197, -0.05143006, -0.17069075, 0.59817879},
+        {-0.11562071, -0.19945448, -0.02150643, -0.02264116, -0.15749109, 0.59493056},
+        {-0.14950876, -0.05920069, 0.0375357, 0.08856689, -0.10811448, 0.59142776}};
 
     auto dq_db{_dq_db_projection_uncertainty(pcam, lensmodel, rt_ref_frames, Nstate, istate_frames0, intrinsics)};
-    return _propagate_calibration_uncertainty();
+    return _propagate_calibration_uncertainty(dq_db, problem_selections, lensmodel);
 }
 
 void compute_uncertainty()
