@@ -195,8 +195,13 @@ add_library(vnlog STATIC ${VNLOG_SRC_CPP})
 target_include_directories(vnlog SYSTEM PUBLIC ${PROJECT_SOURCE_DIR}/vnlog)
 
 # Test script for checking our linker
+
+find_package (Eigen3 REQUIRED NO_MODULE)
+
 add_executable(mrcal_jni_test src/mrcal_test.cpp)
-target_link_libraries(mrcal_jni_test PUBLIC mrcal_jni)
+
+target_link_libraries(mrcal_jni_test PUBLIC mrcal_jni Eigen3::Eigen)
+
 target_include_directories(
     mrcal_jni_test
     SYSTEM

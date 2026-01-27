@@ -67,6 +67,7 @@ std::vector<std::vector<double>> _dq_db_projection_uncertainty(
     std::vector<double> intrinsics
 ) {
     // project with gradients
+    // model_analysis.py:1067
     std::vector<mrcal_point2_t> q(pcam.size());
     std::vector<mrcal_point3_t> dq_dp(pcam.size()*2);
     std::vector<double> dq_dintrinsics(2*pcam.size()*intrinsics.size()); 
@@ -83,6 +84,10 @@ std::vector<std::vector<double>> _dq_db_projection_uncertainty(
     if (!ret) {
         throw std::runtime_error("mrcal_project_with_gradients failed");
     }
+
+    fmt::print("q={}\n", q);
+    fmt::print("dq_dp={}\n", dq_dp);
+    fmt::print("dq_dintrinsics={}\n", dq_dintrinsics);
 
     // prepare dq_db. Mrcal does this as a 40x60x2xNstate tensor, but we
     // flatten to a 2D array of shape (2*40*60, Nstate)
