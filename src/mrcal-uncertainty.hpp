@@ -85,7 +85,7 @@ std::vector<mrcal_point2_t> sample_imager(Size numSamples, Size imagerSize)
 std::vector<double> _dq_db_projection_uncertainty(
     mrcal_point3_t pcam,
     mrcal_lensmodel_t lensmodel,
-    std::vector<mrcal_pose_t> rt_ref_frame,
+    std::vector<mrcal_pose_t>& rt_ref_frame,
     int Nstate,
     std::vector<double>& intrinsics)
 {
@@ -156,20 +156,19 @@ std::vector<double> _dq_db_projection_uncertainty(
     auto dq_dpref = dq_dpcam * dpcam_dpref; 
 
     // calculate p_frames
+    Eigen::Matrix<double, Eigen::Dynamic, 3, Eigen::RowMajor> p_frames(Nboards, 3);
+    p_frames.setZero();
     {
         // output arrays
-        Eigen::Matrix<double, Eigen::Dynamic, 3, Eigen::RowMajor> p_frames(Nboards, 3);
 
         for (size_t pose = 0; pose < Nboards; pose++)
         {
-            auto p_frame_i = p_frames.row(pose);
-
-            mrcal_rotate_point_r(
+            mrcal_rotate_point_r_inverted(
                 // out
-                p_frame_i.data(), 
+                p_frames.row(pose).data(), 
                 NULL, NULL,
                 // in
-                rt_ref_frame[pose].data(),
+                rt_ref_frame[pose].r.xyz,
                 p_ref.data()
             );
         }
@@ -179,6 +178,7 @@ std::vector<double> _dq_db_projection_uncertainty(
 
     std::cout << "dq_db:\n" << dq_db << "\n";
     std::cout << "dq_dpref:\n" << dq_dpref << "\n";
+    std::cout << "p_frames:\n" << p_frames << "\n";
 
     return {};
 }
@@ -218,10 +218,10 @@ bool projection_uncertainty(mrcal_point3_t pcam,
 
     // hard code reference frame transformations
     std::vector<mrcal_pose_t> rt_ref_frames {
-        {-0.13982929, -0.37331785, -0.01785786, -0.15373499, -0.13686309, , 0.59757725},
-        {-0.18951098, -0.50825451, , 0.02212706, -0.26111978, -0.10816078, , 0.58305005}, 
-        {-0.09580704, -0.4029582, , -0.01730795, -0.17221784, -0.17518785, , 0.58390618}, 
-        {-0.08038678, -0.21667501, -0.00719197, -0.05143006, -0.17069075, , 0.59817879}, 
+        {-0.13982929, -0.37331785, -0.01785786, -0.15373499, -0.13686309, 0.59757725},
+        {-0.18951098, -0.50825451, 0.02212706, -0.26111978, -0.10816078, 0.58305005}, 
+        {-0.09580704, -0.4029582, -0.01730795, -0.17221784, -0.17518785, 0.58390618}, 
+        {-0.08038678, -0.21667501, -0.00719197, -0.05143006, -0.17069075, 0.59817879}, 
         {-0.11562071, -0.19945448, -0.02150643, -0.02264116, -0.15749109, 0.59493056}, 
         {-0.14950876, -0.05920069,  0.0375357,   0.08856689, -0.10811448,  0.59142776}
     };
