@@ -192,6 +192,13 @@ std::vector<double> _dq_db_projection_uncertainty(
         );
     }
 
+    // Calculate dq_dframes
+    std::vector<Eigen::Matrix<double, 2, 3>> dq_dframes;
+    dq_dframes.resize(Nboards);
+    for (size_t pose = 0; pose < Nboards; pose++)
+    {
+        dq_dframes[pose] = dq_dpref * dpref_dframes[pose];
+    }
 
     std::cout << "dq_db:\n" << dq_db << "\n";
     std::cout << "dq_dpref:\n" << dq_dpref << "\n";
@@ -203,6 +210,10 @@ std::vector<double> _dq_db_projection_uncertainty(
     std::cout << "dpref_dframes:{\n";
     for (const auto &dpf : dpref_dframes)
         std::cout << "[" << dpf << "]\n";
+    std::cout << "}\n";
+    std::cout << "dq_dframes:{\n";
+    for (const auto &dqf : dq_dframes)
+        std::cout << "[" << dqf << "]\n";
     std::cout << "}\n";
 
     return {};
