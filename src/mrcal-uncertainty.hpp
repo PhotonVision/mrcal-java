@@ -82,7 +82,7 @@ std::vector<mrcal_point2_t> sample_imager(Size numSamples, Size imagerSize)
 
 // The derivative of q (pixel space location/s) wrt b (state vector)
 // at some point this should be a matrix
-std::vector<double> _dq_db_projection_uncertainty(
+Eigen::Matrix<double, 2, Eigen::Dynamic> _dq_db_projection_uncertainty(
     mrcal_point3_t pcam,
     mrcal_lensmodel_t lensmodel,
     std::vector<mrcal_pose_t>& rt_ref_frame,
@@ -114,10 +114,10 @@ std::vector<double> _dq_db_projection_uncertainty(
     // p_ref = pcam rotated by r (always zero1)
     Eigen::Matrix<double, 1, 3> p_ref {pcam.x, pcam.y, pcam.z};
 
-    fmt::print("_dq_db_projection_uncertainty: ==========\n");
-    fmt::print("q={}\n", q);
-    std::cout << "dq_dpcam:\n" << dq_dpcam << "\n";
-    fmt::print("dq_dintrinsics={}\n", dq_dintrinsics);
+    // fmt::print("_dq_db_projection_uncertainty: ==========\n");
+    // fmt::print("q={}\n", q);
+    // std::cout << "dq_dpcam:\n" << dq_dpcam << "\n";
+    // fmt::print("dq_dintrinsics={}\n", dq_dintrinsics);
 
     // prepare dq_db. Mrcal does this as a 40x60x2xNstate tensor, but we
     // are only projecting one point
@@ -199,85 +199,54 @@ std::vector<double> _dq_db_projection_uncertainty(
     {
         dq_dframes[pose] = dq_dpref * dpref_dframes[pose];
     }
-
-    // TODO populate dq_db_slice_frames -> dq_db
-    /*
-    Python code: 
-
-            # shape is either of
-            #    (..., Nframes, Ncameras_extrinsics, 2, 6)
-            #    (..., Nframes, Ncameras_extrinsics, 2, 3)
-            # depending on atinfinity
-            dq_dframes = \
-                nps.matmult(# shape (...,          Nframes=1, Ncameras_extrinsics, 2, 3)
-                            nps.dummy(dq_dpref,    -4),
-                            # shape (...,          Nframes,   Ncameras_extrinsics, 3, 6)
-                            dpref_dframes)
-
-            if not separate_output_per_geometry:
-
-                # shape (..., 2, Nframes,6)
-                dq_db_slice_frames = \
-                    dq_db[...,
-                          istate_frames0:
-                          istate_frames0 + Nframes*6]. \
-                          reshape(dq_db.shape[:-1] + (Nframes,6) )
-                if not atinfinity:
-                    # shape (..., 2, Nframes,6)
-                    dq_db_slice_frames[...] = \
-                        nps.xchg( np.mean(dq_dframes, axis=-3),
-                                  -2, -3 ) / Nframes
-                else:
-                    # shape (..., 2, Nframes,3)
-                    dq_db_slice_frames[...,:3] = \
-                        nps.xchg( np.mean(dq_dframes, axis=-3),
-                                  -2, -3 ) / Nframes
-
-    */
-    
-    // Calculate mean of dq_dframes across all frames
-    Eigen::Matrix<double, 2, 3> dq_dframes_mean = Eigen::Matrix<double, 2, 3>::Zero();
-    for (const auto& dqf : dq_dframes)
-    {
-        dq_dframes_mean += dqf;
-    }
-    dq_dframes_mean /= Nboards;
     
     // Populate dq_db_slice_frames
-    // For at_infinity case (which we're using), we need 3 columns (position only)
-    // Shape: (2, Nboards, 3) -> reshape and place into dq_db
+    // Shape after mean and xchg: (2, 3) for at_infinity
+    // Each frame gets 3 DOF (translation only)
     for (size_t frame = 0; frame < Nboards; frame++)
     {
-        // Each frame has 6 DOF (or 3 for at_infinity)
+        std::cout << "Populating frame " << frame << "\n";
+        std::cout << dq_dframes[frame] / Nboards << "\n";
+
         int frame_start = istate_frames0 + frame * 6;
-        // For at_infinity, only populate the first 3 columns (translation)
-        dq_db.block(0, frame_start, 2, 3) = dq_dframes_mean / Nboards;
+        // Populate first 3 columns of each frame's 6 DOF block with the mean
+        dq_db.block(0, frame_start, 2, 3) = dq_dframes[frame] / Nboards;
     }
 
-    std::cout << "dq_db:\n" << dq_db << "\n";
-    std::cout << "dq_dpref:\n" << dq_dpref << "\n";
-    std::cout << "p_frames:\n" << p_frames << "\n";
-    std::cout << "dpcam_dframes:{\n";
-    for (const auto &dpf : dpref_dframes)
-        std::cout << dpf << "\n";
-    std::cout << "}\n";
-    std::cout << "dpref_dframes:{\n";
-    for (const auto &dpf : dpref_dframes)
-        std::cout << "[" << dpf << "]\n";
-    std::cout << "}\n";
-    std::cout << "dq_dframes:{\n";
-    for (const auto &dqf : dq_dframes)
-        std::cout << "[" << dqf << "]\n";
-    std::cout << "}\n";
+    // std::cout << "dq_db:\n" << dq_db << "\n";
+    // std::cout << "dq_dpref:\n" << dq_dpref << "\n";
+    // std::cout << "p_frames:\n" << p_frames << "\n";
+    // std::cout << "dpcam_dframes:{\n";
+    // for (const auto &dpf : dpref_dframes)
+    //     std::cout << dpf << "\n";
+    // std::cout << "}\n";
+    // std::cout << "dpref_dframes:{\n";
+    // for (const auto &dpf : dpref_dframes)
+    //     std::cout << "[" << dpf << "]\n";
+    // std::cout << "}\n";
+    // std::cout << "dq_dframes:{\n";
+    // for (const auto &dqf : dq_dframes)
+    //     std::cout << "[" << dqf << "]\n";
+    // std::cout << "}\n";
 
-    Eigen::IOFormat CommaFmt(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n", "[", "]");
+    Eigen::IOFormat CommaFmt(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n", "", "");
     std::cout << "dq_db final:\n" << dq_db.format(CommaFmt) << "\n";
 
-    return {};
+    return dq_db;
 }
 
-bool _propagate_calibration_uncertainty()
+bool _propagate_calibration_uncertainty(Eigen::Matrix<double, 2, Eigen::Dynamic> dF_dbunpacked)
 {
+    // what = worstdirection-stdev
+
+    // pack dF_dbunpacked into dF_dbpacked via mrcal_unpack_state (????)
+
+    // estimate observed_pixel_uncertainty via _observed_pixel_uncertainty_from_inputs()
+
+    // call process_slice
+
+    // return Var_dF -> worst_direction_stdev
+
     return true;
 }
 
