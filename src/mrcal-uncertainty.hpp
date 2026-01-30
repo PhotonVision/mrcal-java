@@ -28,9 +28,9 @@
 #include <opencv2/core/types.hpp>
 #include <poseutils.h>
 #include <ranges>
+#include <span>
 #include <unsupported/Eigen/SparseExtra>
 #include <vector>
-#include <span>
 
 std::vector<mrcal_point3_t> compute_uncertainty(
     std::span<mrcal_point3_t> observations_board, std::span<double> intrinsics,
