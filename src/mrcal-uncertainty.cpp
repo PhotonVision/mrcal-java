@@ -65,7 +65,17 @@ struct CalibrationUncertaintyContext {
   int Nmeasurements_boards;
 };
 
-std::vector<mrcal_point2_t> sample_imager(Size numSamples, Size imagerSize) {
+static inline double worst_direction_stdev(const Eigen::Matrix2d &cov) {
+  // Direct formula for 2x2: sqrt((a+c)/2 + sqrt((a-c)^2/4 + b^2))
+  double a = cov(0, 0);
+  double b = cov(1, 0);
+  double c = cov(1, 1);
+
+  return std::sqrt((a + c) / 2.0 + std::sqrt((a - c) * (a - c) / 4.0 + b * b));
+}
+
+static std::vector<mrcal_point2_t> sample_imager(Size numSamples,
+                                                 Size imagerSize) {
   std::vector<mrcal_point2_t> samples;
   samples.reserve(numSamples.width * numSamples.height);
 
@@ -92,128 +102,83 @@ std::vector<mrcal_point2_t> sample_imager(Size numSamples, Size imagerSize) {
   return samples;
 }
 
-// The derivative of q (pixel space location/s) wrt b (state vector)
-// at some point this should be a matrix
-Eigen::Matrix<double, 2, Eigen::Dynamic, Eigen::RowMajor>
-_dq_db_projection_uncertainty(mrcal_point3_t pcam, mrcal_lensmodel_t lensmodel,
-                              std::span<mrcal_pose_t> rt_ref_frame, int Nstate,
-                              int istate_frames0,
-                              std::span<double> intrinsics) {
-  // project with gradients
-  // model_analysis.py:1067
-  mrcal_point2_t q{};
-  Eigen::Matrix<double, 2, 3, Eigen::RowMajor> dq_dpcam;
-  std::vector<double> dq_dintrinsics(2 * 1ull * intrinsics.size());
-  bool ret = mrcal_project(
-      // out
-      &q, reinterpret_cast<mrcal_point3_t *>(dq_dpcam.data()),
-      dq_dintrinsics.data(),
-      // in
-      &pcam, 1, &lensmodel, intrinsics.data());
+// Compute dq_db for multiple points at once
+// Returns matrix of shape (2*Npoints, Nstate) where each pair of rows
+// corresponds to one point
+static Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
+_dq_db_projection_uncertainty_batched(std::span<mrcal_point3_t> pcam_points,
+                                      mrcal_lensmodel_t lensmodel,
+                                      std::span<mrcal_pose_t> rt_ref_frame,
+                                      int Nstate, int istate_frames0,
+                                      std::span<double> intrinsics) {
+  const size_t Npoints = pcam_points.size();
+  const size_t Nboards = rt_ref_frame.size();
 
-  if (!ret) {
-    throw std::runtime_error("mrcal_project_with_gradients failed");
-  }
+  Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
+      dq_db_all(2 * Npoints, Nstate);
+  dq_db_all.setZero();
 
-  // number of boards
-  const size_t Nboards{rt_ref_frame.size()};
+  for (size_t pt = 0; pt < Npoints; pt++) {
+    const mrcal_point3_t &pcam = pcam_points[pt];
+    // Project with gradients
+    mrcal_point2_t q{};
+    Eigen::Matrix<double, 2, 3, Eigen::RowMajor> dq_dpcam;
+    std::vector<double> dq_dintrinsics(2 * intrinsics.size());
 
-  // p_ref = pcam rotated by r (always zero1)
-  Eigen::Matrix<double, 1, 3> p_ref{pcam.x, pcam.y, pcam.z};
+    bool ret = mrcal_project(
+        &q, reinterpret_cast<mrcal_point3_t *>(dq_dpcam.data()),
+        dq_dintrinsics.data(), &pcam, 1, &lensmodel, intrinsics.data());
+    if (!ret) {
+      throw std::runtime_error("mrcal_project failed");
+    }
 
-  // fmt::print("_dq_db_projection_uncertainty: ==========\n");
-  // fmt::print("q={}\n", q);
-  // std::cout << "dq_dpcam:\n" << dq_dpcam << "\n";
-  // fmt::print("dq_dintrinsics={}\n", dq_dintrinsics);
+    // p_ref = pcam (identity transform from cam to ref)
+    Eigen::Matrix<double, 1, 3> p_ref{pcam.x, pcam.y, pcam.z};
 
-  // prepare dq_db. Mrcal does this as a 40x60x2xNstate tensor, but we
-  // are only projecting one point
-  Eigen::Matrix<double, 2, Eigen::Dynamic> dq_db(2, Nstate);
-  dq_db.setZero();
+    // Set intrinsics portion
+    Eigen::Map<Eigen::Matrix<double, 2, Eigen::Dynamic, Eigen::RowMajor>>
+        dq_dintrinsics_eigen(dq_dintrinsics.data(), 2, intrinsics.size());
+    dq_db_all.block(2 * pt, 0, 2, intrinsics.size()) = dq_dintrinsics_eigen;
 
-  // set dq_db[0:num intrinsics] = [dq_dintrinsics]
-  Eigen::Map<Eigen::Matrix<double, 2, Eigen::Dynamic, Eigen::RowMajor>>
-      dq_dintrinsics_eigen(dq_dintrinsics.data(), 2, intrinsics.size());
-  dq_db.leftCols(intrinsics.size()) = dq_dintrinsics_eigen;
+    // Compute dpcam_dpref (identity rotation case)
+    Eigen::Matrix<double, 3, 3> dpcam_dpref;
+    Eigen::Matrix<double, 3, 3> dpcam_dr;
+    {
+      Eigen::Matrix<double, 1, 6> rt_cam_ref;
+      rt_cam_ref.setZero();
+      mrcal_point3_t rotated_p_ref;
+      mrcal_rotate_point_r(rotated_p_ref.xyz, dpcam_dr.data(),
+                           dpcam_dpref.data(), rt_cam_ref.data(), p_ref.data());
+    }
 
-  // determine dpcam_dr and dpcamp_dpref
-  Eigen::Matrix<double, 3, 3> dpcam_dpref; // dxout/dxin
-  Eigen::Matrix<double, 3, 3> dpcam_dr;    // dx_out/dr
-  {
-    // HACK -- hard-coded to origin
-    Eigen::Matrix<double, 1, 6> rt_cam_ref;
-    rt_cam_ref.setZero();
+    Eigen::Matrix<double, 2, 3> dq_dpref = dq_dpcam * dpcam_dpref;
 
-    // output arrays
-    mrcal_point3_t rotated_p_ref;
-
-    mrcal_rotate_point_r(
-        // out
-        rotated_p_ref.xyz, dpcam_dr.data(), dpcam_dpref.data(),
-        // in
-        rt_cam_ref.data(), p_ref.data());
-  }
-
-  // method is always mean-pcam
-  Eigen::Matrix<double, 2, 3> dq_dpref = dq_dpcam * dpcam_dpref;
-
-  // calculate p_frames
-  Eigen::Matrix<double, Eigen::Dynamic, 3, Eigen::RowMajor> p_frames(Nboards,
-                                                                     3);
-  p_frames.setZero();
-  {
-    // output arrays
-
+    // Compute p_frames and dpref_dframes for each board
     for (size_t pose = 0; pose < Nboards; pose++) {
-      mrcal_rotate_point_r_inverted(
-          // out
-          p_frames.row(pose).data(), NULL, NULL,
-          // in
-          rt_ref_frame[pose].r.xyz, p_ref.data());
+      Eigen::Matrix<double, 1, 3> p_frame;
+      mrcal_rotate_point_r_inverted(p_frame.data(), NULL, NULL,
+                                    rt_ref_frame[pose].r.xyz, p_ref.data());
+
+      Eigen::Matrix<double, 3, 3, Eigen::RowMajor> dpref_dframe;
+      mrcal_point3_t dummy;
+      mrcal_rotate_point_r(dummy.xyz, dpref_dframe.data(), NULL,
+                           rt_ref_frame[pose].r.xyz, p_frame.data());
+
+      Eigen::Matrix<double, 2, 3> dq_dframe = dq_dpref * dpref_dframe;
+
+      int frame_start = istate_frames0 + pose * 6;
+      dq_db_all.block(2 * pt, frame_start, 2, 3) =
+          dq_dframe / static_cast<double>(Nboards);
     }
   }
 
-  // and rotate to yield dpref_dframes
-  std::vector<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>> dpref_dframes;
-  dpref_dframes.resize(Nboards);
-  for (size_t pose = 0; pose < Nboards; pose++) {
-    mrcal_point3_t dummy;
-    mrcal_rotate_point_r(
-        // out
-        dummy.xyz, dpref_dframes[pose].data(), NULL,
-        // in
-        rt_ref_frame[pose].r.xyz, p_frames.row(pose).data());
-  }
-
-  // Calculate dq_dframes
-  std::vector<Eigen::Matrix<double, 2, 3>> dq_dframes;
-  dq_dframes.resize(Nboards);
-  for (size_t pose = 0; pose < Nboards; pose++) {
-    dq_dframes[pose] = dq_dpref * dpref_dframes[pose];
-  }
-
-  // Populate dq_db_slice_frames
-  // Shape after mean and xchg: (2, 3) for at_infinity
-  // Each frame gets 3 DOF (translation only)
-  for (size_t frame = 0; frame < Nboards; frame++) {
-    // std::cout << "Populating frame " << frame << "\n";
-    // std::cout << dq_dframes[frame] / Nboards << "\n";
-
-    int frame_start = istate_frames0 + frame * 6;
-    // Populate first 3 columns of each frame's 6 DOF block with the mean
-    dq_db.block(0, frame_start, 2, 3) = dq_dframes[frame] / Nboards;
-  }
-
-  // Eigen::IOFormat CommaFmt(Eigen::StreamPrecision, Eigen::DontAlignCols, ",
-  // ", "\n", "", ""); std::cout << "dq_db final:\n"
-  //           << dq_db.format(CommaFmt) << "\n";
-
-  return dq_db;
+  return dq_db_all;
 }
 
-double _observed_pixel_uncertainty_from_inputs(std::vector<double> &x,
-                                               int num_measurements_board,
-                                               int measurement_index_board) {
+static double
+_observed_pixel_uncertainty_from_inputs(std::vector<double> &x,
+                                        int num_measurements_board,
+                                        int measurement_index_board) {
   // Compute variance from residuals
   double sum = 0.0, sum_sq = 0.0;
   for (size_t i = measurement_index_board;
@@ -228,7 +193,7 @@ double _observed_pixel_uncertainty_from_inputs(std::vector<double> &x,
   return std::sqrt(variance);
 }
 
-CalibrationUncertaintyContext create_calibration_uncertainty_context(
+static CalibrationUncertaintyContext create_calibration_uncertainty_context(
     mrcal_problem_selections_t &problem_selections,
     mrcal_lensmodel_t &lensmodel, const std::span<double> intrinsics,
     const std::span<mrcal_pose_t> rt_ref_frame,
@@ -350,47 +315,63 @@ CalibrationUncertaintyContext create_calibration_uncertainty_context(
       .Nmeasurements_boards = Nmeasurements_boards};
 }
 
-double _propagate_calibration_uncertainty_fast(
+// Propagate uncertainty for multiple points at once
+// dF_dbunpacked has shape (2*Npoints, Nstate)
+// Returns vector of worst-direction stdevs for each point
+static std::vector<double> _propagate_calibration_uncertainty_batched(
     const CalibrationUncertaintyContext &context,
-    Eigen::Matrix<double, 2, Eigen::Dynamic, Eigen::RowMajor> dF_dbunpacked,
+    Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
+        &dF_dbunpacked,
     mrcal_problem_selections_t &problem_selections,
     mrcal_lensmodel_t &lensmodel, const std::span<double> intrinsics,
     const std::span<mrcal_pose_t> rt_ref_frame, int Nobservations_board) {
-  // Pack the gradient
-  Eigen::Matrix<double, 2, Eigen::Dynamic, Eigen::RowMajor> dF_dbpacked =
-      dF_dbunpacked;
 
-  // called for each Nstate elements of dF_dbunpacked
-  for (int i = 0; i < dF_dbunpacked.rows(); i++) {
-    size_t offset = i * dF_dbunpacked.cols();
+  const int Npoints = dF_dbunpacked.rows() / 2;
+  const int Nstate = dF_dbunpacked.cols();
+
+  // Pack the gradient (in-place modification)
+  Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
+      dF_dbpacked = dF_dbunpacked;
+  for (int i = 0; i < dF_dbpacked.rows(); i++) {
     mrcal_unpack_solver_state_vector(
-        dF_dbpacked.data() + offset, 1, 0, rt_ref_frame.size(), 0, 0,
+        dF_dbpacked.row(i).data(), 1, 0, rt_ref_frame.size(), 0, 0,
         Nobservations_board, problem_selections, &lensmodel);
   }
 
-  // Solve JtJ * A = dF_dbpacked^T using pre-computed factorization
-  Eigen::MatrixXd rhs = dF_dbpacked.transpose();  // (Nstate, 2)
-  Eigen::MatrixXd A = context.solver->solve(rhs); // (Nstate, 2)
+  // Solve JtJ * A = dF_dbpacked^T for ALL points at once
+  // rhs shape: (Nstate, 2*Npoints)
+  Eigen::MatrixXd rhs = dF_dbpacked.transpose();
+  Eigen::MatrixXd A = context.solver->solve(rhs); // (Nstate, 2*Npoints)
 
   if (context.solver->info() != Eigen::Success) {
     throw std::runtime_error("Eigen solve failed");
   }
 
-  // Compute J_obs * A using the stored observation Jacobian
-  Eigen::MatrixXd JA = context.J_observations * A; // (Nmeas_obs, 2)
+  // Compute J_obs * A for all points: (Nmeas_obs, 2*Npoints)
+  Eigen::MatrixXd JA = context.J_observations * A;
 
-  // Compute Var(F) = JA^T * JA
-  Eigen::Matrix2d Var_dF = JA.transpose() * JA;
+  // Extract per-point uncertainties
+  std::vector<double> uncertainties(Npoints);
+  for (int pt = 0; pt < Npoints; pt++) {
+    // Extract the 2 columns for this point
+    Eigen::MatrixXd JA_pt = JA.middleCols(2 * pt, 2); // (Nmeas_obs, 2)
 
-  return worst_direction_stdev(Var_dF) * context.observed_pixel_uncertainty;
+    // Compute Var(F) = JA_pt^T * JA_pt
+    Eigen::Matrix2d Var_dF = JA_pt.transpose() * JA_pt;
+
+    uncertainties[pt] =
+        worst_direction_stdev(Var_dF) * context.observed_pixel_uncertainty;
+  }
+
+  return uncertainties;
 }
 
-double projection_uncertainty_fast(const CalibrationUncertaintyContext &context,
-                                   mrcal_point3_t pcam,
-                                   mrcal_lensmodel_t lensmodel,
-                                   std::span<mrcal_pose_t> rt_ref_frames,
-                                   std::span<double> intrinsics) {
-  // Prepare inputs (same as before)
+// Compute projection uncertainty for multiple points at once
+static std::vector<double> projection_uncertainty_batched(
+    const CalibrationUncertaintyContext &context,
+    std::span<mrcal_point3_t> pcam_points, mrcal_lensmodel_t lensmodel,
+    std::span<mrcal_pose_t> rt_ref_frames, std::span<double> intrinsics) {
+
   mrcal_problem_selections_t problem_selections{0};
   problem_selections.do_optimize_intrinsics_core = true;
   problem_selections.do_optimize_intrinsics_distortions = true;
@@ -403,16 +384,28 @@ double projection_uncertainty_fast(const CalibrationUncertaintyContext &context,
 
   int istate_frames0 = mrcal_state_index_frames(0, 1, 0, 6, 0, 0, 6,
                                                 problem_selections, &lensmodel);
-
   int Nobservations_board = rt_ref_frames.size();
 
-  auto dq_db{_dq_db_projection_uncertainty(pcam, lensmodel, rt_ref_frames,
-                                           context.Nstate, istate_frames0,
-                                           intrinsics)};
+  auto dq_db = _dq_db_projection_uncertainty_batched(
+      pcam_points, lensmodel, rt_ref_frames, context.Nstate, istate_frames0,
+      intrinsics);
 
-  return _propagate_calibration_uncertainty_fast(
+  return _propagate_calibration_uncertainty_batched(
       context, dq_db, problem_selections, lensmodel, intrinsics, rt_ref_frames,
       Nobservations_board);
+}
+
+double projection_uncertainty_fast(const CalibrationUncertaintyContext &context,
+                                   mrcal_point3_t pcam,
+                                   mrcal_lensmodel_t lensmodel,
+                                   std::span<mrcal_pose_t> rt_ref_frames,
+                                   std::span<double> intrinsics) {
+  // Single-point version - consider using batched version for better
+  // performance
+  std::vector<mrcal_point3_t> pcam_vec = {pcam};
+  auto results = projection_uncertainty_batched(context, pcam_vec, lensmodel,
+                                                rt_ref_frames, intrinsics);
+  return results[0];
 }
 
 std::vector<mrcal_point3_t> compute_uncertainty(
@@ -465,19 +458,6 @@ std::vector<mrcal_point3_t> compute_uncertainty(
       calobjectSize.width, calobjectSize.height, calobjectSpacing, imagerSize,
       warp);
 
-#ifndef SLEIPNIR_DISABLE_DIAGNOSTICS
-  slp::Spy<double> spy_J_observations(
-      "J_observations.spy", "J_observations Matrix", "Measurements", "State",
-      context.Nmeasurements_boards, context.Nstate);
-  spy_J_observations.add(context.J_observations);
-
-  auto JtJ = context.J_observations.transpose() * context.J_observations;
-  slp::Spy<double> spy_JtJ("JtJ.spy", "JtJ Matrix (Normal Equations)", "State",
-                           "State", context.Nstate, context.Nstate);
-  spy_JtJ.add(JtJ);
-#endif
-
-  // hard code some stuff
   auto q = sample_imager(sampleResolution, imagerSize);
 
   // and unproject
@@ -500,43 +480,14 @@ std::vector<mrcal_point3_t> compute_uncertainty(
     }
   }
 
+  std::vector<double> uncertainties = projection_uncertainty_batched(
+      context, pcam, lensmodel, rt_ref_frames, intrinsics);
+
+  // Build result
   std::vector<mrcal_point3_t> ret;
   ret.reserve(pcam.size());
-
-  // iterate over pcam and q simultaneously - now much faster!
   for (size_t i = 0; i < pcam.size(); i++) {
-    auto &pi = pcam[i];
-    auto &qi = q[i];
-
-    auto start = std::chrono::high_resolution_clock::now();
-
-    double uncertainty = projection_uncertainty_fast(context, pi, lensmodel,
-                                                     rt_ref_frames, intrinsics);
-
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration =
-        std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-
-    // fmt::print("{}, {}, {}\n", qi.x, qi.y, uncertainty);
-
-    ret.push_back(mrcal_point3_t{qi.x, qi.y, uncertainty});
-
-#ifndef SLEIPNIR_DISABLE_DIAGNOSTICS
-    if (i < 5) {
-      int istate_frames0 = mrcal_state_index_frames(
-          0, 1, 0, 6, 0, 0, 6, problem_selections, &lensmodel);
-
-      auto dq_db = _dq_db_projection_uncertainty(pi, lensmodel, rt_ref_frames,
-                                                 context.Nstate, istate_frames0,
-                                                 intrinsics);
-
-      Eigen::SparseMatrix<double> dq_db_sparse = dq_db.sparseView();
-      slp::Spy<double> spy_gradient(fmt::format("gradient_{}.spy", i),
-                                    fmt::format("Gradient dq_db Point {}", i),
-                                    "Output", "State", 2, context.Nstate);
-      spy_gradient.add(dq_db_sparse);
-    }
-#endif
+    ret.push_back({q[i].x, q[i].y, uncertainties[i]});
   }
 
   return ret;
