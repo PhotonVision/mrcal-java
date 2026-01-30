@@ -223,11 +223,22 @@ int main() {
   double calobjectSpacing(0.0254);
   cv::Size sampleRes{60, 40};
 
-  auto ret = compute_uncertainty(observations_board_cast, intrinsics,
-                                 rt_ref_frames, warp, imagerSize, calobjectSize,
-                                 calobjectSpacing, sampleRes);
+  for (int i = 0; i < 5; i++) {
 
-  for (auto &point : ret) {
-    fmt::print("{}, {}, {}\n", point.x, point.y, point.z);
+    auto start = std::chrono::high_resolution_clock::now();
+    auto ret = compute_uncertainty(observations_board_cast, intrinsics,
+                                   rt_ref_frames, warp, imagerSize,
+                                   calobjectSize, calobjectSpacing, sampleRes);
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration =
+        std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+    std::cout << "Time taken: " << duration.count() << " ms" << std::endl;
+
+    std::ofstream outFile("out");
+    if (!outFile)
+      return -1;
+    for (auto &point : ret) {
+      outFile << fmt::format("{}, {}, {}\n", point.x, point.y, point.z);
+    }
   }
 }
