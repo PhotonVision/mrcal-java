@@ -30,6 +30,7 @@
 #include <ranges>
 #include <unsupported/Eigen/SparseExtra>
 #include <vector>
+#include <span>
 
 std::vector<mrcal_point3_t> compute_uncertainty(
     std::span<mrcal_point3_t> observations_board, std::span<double> intrinsics,
