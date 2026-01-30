@@ -17,17 +17,15 @@
 
 package org.photonvision.mrcal;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-import org.opencv.core.MatOfFloat;
-import org.opencv.core.MatOfPoint2f;
-
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Translation3d;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import org.opencv.core.MatOfFloat;
+import org.opencv.core.MatOfPoint2f;
 
 public class MrCalJNI {
     public static class MrCalResult {
@@ -46,9 +44,17 @@ public class MrCalJNI {
         }
 
         public MrCalResult(
-                boolean success, int width, int height, double[] intrinsics, double[] optimized_rt_rtoref,
-                double rms_error, double[] residuals, double warp_x,
-                double warp_y, int Noutliers, boolean[] cornerUseMask) {
+                boolean success,
+                int width,
+                int height,
+                double[] intrinsics,
+                double[] optimized_rt_rtoref,
+                double rms_error,
+                double[] residuals,
+                double warp_x,
+                double warp_y,
+                int Noutliers,
+                boolean[] cornerUseMask) {
             this.success = success;
             this.intrinsics = intrinsics;
             this.rms_error = rms_error;
@@ -59,14 +65,15 @@ public class MrCalJNI {
 
             optimizedPoses = new ArrayList<>();
             for (int i = 0; i < optimized_rt_rtoref.length; i += 6) {
-                var rot = new Rotation3d(VecBuilder.fill(
-                        optimized_rt_rtoref[i + 0],
-                        optimized_rt_rtoref[i + 1],
-                        optimized_rt_rtoref[i + 2]));
-                var t = new Translation3d(
-                        optimized_rt_rtoref[i + 3],
-                        optimized_rt_rtoref[i + 4],
-                        optimized_rt_rtoref[i + 5]);
+                var rot =
+                        new Rotation3d(
+                                VecBuilder.fill(
+                                        optimized_rt_rtoref[i + 0],
+                                        optimized_rt_rtoref[i + 1],
+                                        optimized_rt_rtoref[i + 2]));
+                var t =
+                        new Translation3d(
+                                optimized_rt_rtoref[i + 3], optimized_rt_rtoref[i + 4], optimized_rt_rtoref[i + 5]);
 
                 optimizedPoses.add(new Pose3d(t, rot));
             }
@@ -80,25 +87,65 @@ public class MrCalJNI {
 
         @Override
         public String toString() {
-            return "MrCalResult [success=" + success + ", intrinsics=" + Arrays.toString(intrinsics) + ", rms_error="
-                    + rms_error + ", warp_x=" + warp_x + ", warp_y="
-                    + warp_y + ", Noutliers=" + Noutliers + "]";
+            return "MrCalResult [success="
+                    + success
+                    + ", intrinsics="
+                    + Arrays.toString(intrinsics)
+                    + ", rms_error="
+                    + rms_error
+                    + ", warp_x="
+                    + warp_x
+                    + ", warp_y="
+                    + warp_y
+                    + ", Noutliers="
+                    + Noutliers
+                    + "]";
         }
     }
 
     public static native MrCalResult mrcal_calibrate_camera(
             double[] observations_board,
-            int boardWidth, int boardHeight, double boardSpacing,
-            int imageWidth, int imageHeight, double focalLen);
+            int boardWidth,
+            int boardHeight,
+            double boardSpacing,
+            int imageWidth,
+            int imageHeight,
+            double focalLen);
 
-    public static native boolean undistort_mrcal(long srcMat, long dstMat, long cameraMat, long distCoeffsMat,
-            int lensModelOrdinal, int order, int Nx, int Ny, int fov_x_deg);
+    public static native boolean undistort_mrcal(
+            long srcMat,
+            long dstMat,
+            long cameraMat,
+            long distCoeffsMat,
+            int lensModelOrdinal,
+            int order,
+            int Nx,
+            int Ny,
+            int fov_x_deg);
+
+    public static native double[] compute_uncertainty(
+            double[] observations_board,
+            double[] intrinsics,
+            double[] rt_ref_frames,
+            int boardWidth,
+            int boardHeight,
+            double boardSpacing,
+            int imageWidth,
+            int imageHeight,
+            int sampleGridWidth,
+            int sampleGridHeight,
+            double warpX,
+            double warpY);
 
     public static MrCalResult calibrateCamera(
             List<MatOfPoint2f> board_corners,
             List<MatOfFloat> board_corner_levels,
-            int boardWidth, int boardHeight, double boardSpacing,
-            int imageWidth, int imageHeight, double focalLen) {
+            int boardWidth,
+            int boardHeight,
+            double boardSpacing,
+            int imageWidth,
+            int imageHeight,
+            double focalLen) {
         double[] observations = new double[boardWidth * boardHeight * 3 * board_corners.size()];
 
         if (!(board_corners.size() == board_corner_levels.size())) {
@@ -128,11 +175,11 @@ public class MrCalJNI {
             }
         }
 
-        if (i * 3 != observations.length){
+        if (i * 3 != observations.length) {
             return new MrCalResult(false);
         }
 
-        return mrcal_calibrate_camera(observations, boardWidth, boardHeight, boardSpacing, imageWidth, imageHeight,
-                focalLen);
+        return mrcal_calibrate_camera(
+                observations, boardWidth, boardHeight, boardSpacing, imageWidth, imageHeight, focalLen);
     }
 }

@@ -5,7 +5,7 @@ project(mrcal_jni LANGUAGES C CXX VERSION 1.0.0)
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 
 # C++
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -14,6 +14,10 @@ if(WITH_ASAN)
     add_compile_options(-fsanitize=address -g -Wall -fsanitize=undefined)
 endif()
 
+# Include FetchContent module for downloading dependencies
+include(FetchContent)
+
+# OpenCV configuration
 # Keep this in sync with build.gradle and with
 # https://github.com/PhotonVision/photonvision/blob/main/build.gradle
 set(OPENCV_YEAR "frc2025")
@@ -22,32 +26,47 @@ set(OPENCV_VERSION "4.10.0-3")
 # type can be "", "debug", "static", or "staticdebug"
 set(OPENCV_TYPE "")
 
-# Download opencv, and save the path
-include(FetchContent)
-FetchContent_Declare(
-    opencv_lib
-    URL
-        https://frcmaven.wpi.edu/artifactory/release/edu/wpi/first/thirdparty/${OPENCV_YEAR}/opencv/opencv-cpp/${OPENCV_VERSION}/opencv-cpp-${OPENCV_VERSION}-${OPENCV_ARCH}${OPENCV_TYPE}.zip
-)
-FetchContent_MakeAvailable(opencv_lib)
+# Check if OPENCV_ARCH is set to determine OpenCV source
+if(DEFINED OPENCV_ARCH AND NOT OPENCV_ARCH STREQUAL "")
+    # Download opencv from FRC maven repository
+    message(STATUS "Using FRC OpenCV for architecture: ${OPENCV_ARCH}")
 
-# download OpenCV headers
-FetchContent_Declare(
-    opencv_header
-    URL
-        https://frcmaven.wpi.edu/artifactory/release/edu/wpi/first/thirdparty/${OPENCV_YEAR}/opencv/opencv-cpp/${OPENCV_VERSION}/opencv-cpp-${OPENCV_VERSION}-headers.zip
-)
-FetchContent_MakeAvailable(opencv_header)
+    FetchContent_Declare(
+        opencv_lib
+        URL
+            https://frcmaven.wpi.edu/artifactory/release/edu/wpi/first/thirdparty/${OPENCV_YEAR}/opencv/opencv-cpp/${OPENCV_VERSION}/opencv-cpp-${OPENCV_VERSION}-${OPENCV_ARCH}${OPENCV_TYPE}.zip
+    )
+    FetchContent_MakeAvailable(opencv_lib)
 
-# This probably doesn't work great with shared libraries, but I don't care about those right now
-file(
-    GLOB_RECURSE OPENCV_LIB_PATH
-    "${opencv_lib_SOURCE_DIR}/**/*.lib"
-    "${opencv_lib_SOURCE_DIR}/**/*.so*"
-    "${opencv_lib_SOURCE_DIR}/**/*.*.dylib"
-)
-set(OPENCV_INCLUDE_PATH ${opencv_header_SOURCE_DIR})
-message("Depending on opencv ${OPENCV_LIB_PATH}")
+    # download OpenCV headers
+    FetchContent_Declare(
+        opencv_header
+        URL
+            https://frcmaven.wpi.edu/artifactory/release/edu/wpi/first/thirdparty/${OPENCV_YEAR}/opencv/opencv-cpp/${OPENCV_VERSION}/opencv-cpp-${OPENCV_VERSION}-headers.zip
+    )
+    FetchContent_MakeAvailable(opencv_header)
+
+    # This probably doesn't work great with shared libraries, but I don't care about those right now
+    file(
+        GLOB_RECURSE OPENCV_LIB_PATH
+        "${opencv_lib_SOURCE_DIR}/**/*.lib"
+        "${opencv_lib_SOURCE_DIR}/**/*.so*"
+        "${opencv_lib_SOURCE_DIR}/**/*.*.dylib"
+    )
+    set(OPENCV_INCLUDE_PATH ${opencv_header_SOURCE_DIR})
+    set(OPENCV_LIBRARIES ${OPENCV_LIB_PATH})
+    message(STATUS "Using FRC OpenCV libraries: ${OPENCV_LIB_PATH}")
+else()
+    # Use system OpenCV
+    message(STATUS "OPENCV_ARCH not set, using system OpenCV")
+    find_package(OpenCV REQUIRED)
+
+    set(OPENCV_INCLUDE_PATH ${OpenCV_INCLUDE_DIRS})
+    set(OPENCV_LIBRARIES ${OpenCV_LIBS})
+    message(STATUS "Found system OpenCV version: ${OpenCV_VERSION}")
+    message(STATUS "OpenCV include dirs: ${OpenCV_INCLUDE_DIRS}")
+    message(STATUS "OpenCV libraries: ${OpenCV_LIBS}")
+endif()
 
 # Openblas/suitesparse/friends
 # From https://github.com/wpilibsuite/thirdparty-ceres/blob/main/CMakeLists.txt
@@ -136,6 +155,7 @@ set(SRC_HPP)
 set(SRC_CPP
     src/mrcal_jni.h
     src/mrcal_wrapper.cpp
+    src/mrcal-uncertainty.cpp
     src/mrcal_jni.cpp
     libdogleg/dogleg.c
     mrcal/mrcal.c
@@ -179,11 +199,14 @@ add_dependencies(mrcal_jni generate_minimath)
 
 target_link_libraries(
     mrcal_jni
-    ${OPENCV_LIB_PATH}
-    SuiteSparse::CHOLMOD_static
-    SuiteSparse::SuiteSparseConfig_static
-    ${OPENBLAS_TARGET}
-    lapack
+    PUBLIC
+        ${OPENCV_LIBRARIES}
+        SuiteSparse::CHOLMOD_static
+        SuiteSparse::SuiteSparseConfig_static
+        ${OPENBLAS_TARGET}
+        lapack
+        fmt
+        Eigen3::Eigen # TODO link against wpilib or hide these symbols
 )
 
 # vnlog for the test script
@@ -192,15 +215,20 @@ add_library(vnlog STATIC ${VNLOG_SRC_CPP})
 target_include_directories(vnlog SYSTEM PUBLIC ${PROJECT_SOURCE_DIR}/vnlog)
 
 # Test script for checking our linker
+
+find_package(Eigen3 REQUIRED NO_MODULE)
+
 add_executable(mrcal_jni_test src/mrcal_test.cpp)
-target_link_libraries(mrcal_jni_test PUBLIC mrcal_jni)
+
+target_link_libraries(mrcal_jni_test PUBLIC mrcal_jni Eigen3::Eigen)
+
 target_include_directories(
     mrcal_jni_test
     SYSTEM
     PRIVATE ${PROJECT_SOURCE_DIR}/vnlog
 )
 add_dependencies(mrcal_jni_test mrcal_jni vnlog)
-target_link_libraries(mrcal_jni_test PRIVATE ${OpenCV_LIBS} vnlog)
+target_link_libraries(mrcal_jni_test PRIVATE ${OPENCV_LIBRARIES} vnlog)
 
 if(WITH_ASAN)
     target_link_libraries(
