@@ -16,11 +16,11 @@
  */
 
 #include "mrcal-uncertainty.hpp"
+#include <Eigen/SparseLU>
 #include <chrono>
 #include <memory>
 #include <utility>
 #include <vector>
-#include <Eigen/SparseLU>
 
 using namespace cv;
 
@@ -550,17 +550,18 @@ std::vector<mrcal_point3_t> compute_uncertainty(
       calobjectSize.width, calobjectSize.height, calobjectSpacing, imagerSize,
       warp);
 
-// #ifndef SLEIPNIR_DISABLE_DIAGNOSTICS
-//   slp::Spy<double> spy_J_observations(
-//       "J_observations.spy", "J_observations Matrix", "Measurements", "State",
-//       context.Nmeasurements_boards, context.Nstate);
-//   spy_J_observations.add(context.J_observations);
+  // #ifndef SLEIPNIR_DISABLE_DIAGNOSTICS
+  //   slp::Spy<double> spy_J_observations(
+  //       "J_observations.spy", "J_observations Matrix", "Measurements",
+  //       "State", context.Nmeasurements_boards, context.Nstate);
+  //   spy_J_observations.add(context.J_observations);
 
-//   auto JtJ = context.J_observations.transpose() * context.J_observations;
-//   slp::Spy<double> spy_JtJ("JtJ.spy", "JtJ Matrix (Normal Equations)", "State",
-//                            "State", context.Nstate, context.Nstate);
-//   spy_JtJ.add(JtJ);
-// #endif
+  //   auto JtJ = context.J_observations.transpose() * context.J_observations;
+  //   slp::Spy<double> spy_JtJ("JtJ.spy", "JtJ Matrix (Normal Equations)",
+  //   "State",
+  //                            "State", context.Nstate, context.Nstate);
+  //   spy_JtJ.add(JtJ);
+  // #endif
 
   // hard code some stuff
   auto q = sample_imager(sampleResolution, imagerSize);
@@ -606,22 +607,25 @@ std::vector<mrcal_point3_t> compute_uncertainty(
 
     ret.push_back(mrcal_point3_t{qi.x, qi.y, uncertainty});
 
-// #ifndef SLEIPNIR_DISABLE_DIAGNOSTICS
-//     if (i < 5) {
-//       int istate_frames0 = mrcal_state_index_frames(
-//           0, 1, 0, 6, 0, 0, 6, problem_selections, &lensmodel);
+    // #ifndef SLEIPNIR_DISABLE_DIAGNOSTICS
+    //     if (i < 5) {
+    //       int istate_frames0 = mrcal_state_index_frames(
+    //           0, 1, 0, 6, 0, 0, 6, problem_selections, &lensmodel);
 
-//       auto dq_db = _dq_db_projection_uncertainty(pi, lensmodel, rt_ref_frames,
-//                                                  context.Nstate, istate_frames0,
-//                                                  intrinsics);
+    //       auto dq_db = _dq_db_projection_uncertainty(pi, lensmodel,
+    //       rt_ref_frames,
+    //                                                  context.Nstate,
+    //                                                  istate_frames0,
+    //                                                  intrinsics);
 
-//       Eigen::SparseMatrix<double> dq_db_sparse = dq_db.sparseView();
-//       slp::Spy<double> spy_gradient(fmt::format("gradient_{}.spy", i),
-//                                     fmt::format("Gradient dq_db Point {}", i),
-//                                     "Output", "State", 2, context.Nstate);
-//       spy_gradient.add(dq_db_sparse);
-//     }
-// #endif
+    //       Eigen::SparseMatrix<double> dq_db_sparse = dq_db.sparseView();
+    //       slp::Spy<double> spy_gradient(fmt::format("gradient_{}.spy", i),
+    //                                     fmt::format("Gradient dq_db Point
+    //                                     {}", i), "Output", "State", 2,
+    //                                     context.Nstate);
+    //       spy_gradient.add(dq_db_sparse);
+    //     }
+    // #endif
   }
 
   return ret;

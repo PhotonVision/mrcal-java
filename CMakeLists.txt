@@ -188,7 +188,12 @@ add_library(mrcal_jni SHARED ${INCLUDE_HPP} ${SRC_HPP} ${SRC_CPP})
 target_include_directories(
     mrcal_jni
     SYSTEM
-    PUBLIC ${JNI_INCLUDE_DIRS} ${OPENCV_INCLUDE_PATH} mrcal libdogleg ${WPIMATH_INCLUDE_PATH}
+    PUBLIC
+        ${JNI_INCLUDE_DIRS}
+        ${OPENCV_INCLUDE_PATH}
+        mrcal
+        libdogleg
+        ${WPIMATH_INCLUDE_PATH}
 )
 add_dependencies(mrcal_jni generate_minimath)
 

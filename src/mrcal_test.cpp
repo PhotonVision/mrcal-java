@@ -198,8 +198,10 @@ int main() {
       observations_board.size() / 3};
 
   std::vector<double> intrinsics{
-    1139.0877048105797, 1138.7936678503925, 614.197328375207, 342.96774319938083, 0.17554290320344965, -1.2420874177297045, 0.001987356556591965, 0.000661995743813977, 2.3790066724705845, 0.014075252514880635, 0.06584882088340283, -0.08989288352937631
-  };
+      1139.0877048105797,   1138.7936678503925,   614.197328375207,
+      342.96774319938083,   0.17554290320344965,  -1.2420874177297045,
+      0.001987356556591965, 0.000661995743813977, 2.3790066724705845,
+      0.014075252514880635, 0.06584882088340283,  -0.08989288352937631};
 
   // clang-format off
   std::vector<double> rt_ref_frames{
@@ -208,10 +210,10 @@ int main() {
   std::span<mrcal_pose_t> rt_ref_cast{
       reinterpret_cast<mrcal_pose_t *>(rt_ref_frames.data()),
       rt_ref_frames.size() / 6};
-    
+
   // clang-format on
 
-  mrcal_calobject_warp_t warp{8.601078636394221E-5,2.7993528448348494E-5};
+  mrcal_calobject_warp_t warp{8.601078636394221E-5, 2.7993528448348494E-5};
 
   cv::Size imagerSize{1280, 720};
   cv::Size calobjectSize{10, 10};
@@ -219,11 +221,10 @@ int main() {
   cv::Size sampleRes{60, 40};
 
   for (int i = 0; i < 5; i++) {
-
     auto start = std::chrono::high_resolution_clock::now();
     auto ret = compute_uncertainty(observations_board_cast, intrinsics,
-                                   rt_ref_cast, warp, imagerSize,
-                                   calobjectSize, calobjectSpacing, sampleRes);
+                                   rt_ref_cast, warp, imagerSize, calobjectSize,
+                                   calobjectSpacing, sampleRes);
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration =
         std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
