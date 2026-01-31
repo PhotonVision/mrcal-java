@@ -28,5 +28,5 @@ plt.gca().invert_yaxis()
 plt.axis("equal")
 plt.tight_layout()
 
-plt.show()
-# plt.savefig("heatmap.svg")
+# plt.show()
+plt.savefig("heatmap.svg")
