@@ -26,7 +26,7 @@
 #include <string>
 #include <string_view>
 
-#include <Eigen/Sparse>
+#include <Eigen/SparseCore>
 
 namespace slp {
 

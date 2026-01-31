@@ -18,9 +18,7 @@
 #pragma once
 
 #include "spy.hpp"
-#include <Eigen/CholmodSupport>
 #include <Eigen/Dense>
-#include <Eigen/Sparse>
 #include <cholmod.h>
 #include <fmt/core.h>
 #include <fmt/ranges.h>
@@ -29,7 +27,6 @@
 #include <poseutils.h>
 #include <ranges>
 #include <span>
-#include <unsupported/Eigen/SparseExtra>
 #include <vector>
 
 std::vector<mrcal_point3_t> compute_uncertainty(

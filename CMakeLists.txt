@@ -22,51 +22,46 @@ include(FetchContent)
 # https://github.com/PhotonVision/photonvision/blob/main/build.gradle
 set(OPENCV_YEAR "frc2025")
 set(OPENCV_VERSION "4.10.0-3")
+set(WPIMATH_VERSION "2026.2.1")
 
 # type can be "", "debug", "static", or "staticdebug"
 set(OPENCV_TYPE "")
 
-# Check if OPENCV_ARCH is set to determine OpenCV source
-if(DEFINED OPENCV_ARCH AND NOT OPENCV_ARCH STREQUAL "")
-    # Download opencv from FRC maven repository
-    message(STATUS "Using FRC OpenCV for architecture: ${OPENCV_ARCH}")
+message(STATUS "Using FRC OpenCV for architecture: ${OPENCV_ARCH}")
 
-    FetchContent_Declare(
-        opencv_lib
-        URL
-            https://frcmaven.wpi.edu/artifactory/release/edu/wpi/first/thirdparty/${OPENCV_YEAR}/opencv/opencv-cpp/${OPENCV_VERSION}/opencv-cpp-${OPENCV_VERSION}-${OPENCV_ARCH}${OPENCV_TYPE}.zip
-    )
-    FetchContent_MakeAvailable(opencv_lib)
+FetchContent_Declare(
+    opencv_lib
+    URL
+        https://frcmaven.wpi.edu/artifactory/release/edu/wpi/first/thirdparty/${OPENCV_YEAR}/opencv/opencv-cpp/${OPENCV_VERSION}/opencv-cpp-${OPENCV_VERSION}-${OPENCV_ARCH}${OPENCV_TYPE}.zip
+)
+FetchContent_MakeAvailable(opencv_lib)
 
-    # download OpenCV headers
-    FetchContent_Declare(
-        opencv_header
-        URL
-            https://frcmaven.wpi.edu/artifactory/release/edu/wpi/first/thirdparty/${OPENCV_YEAR}/opencv/opencv-cpp/${OPENCV_VERSION}/opencv-cpp-${OPENCV_VERSION}-headers.zip
-    )
-    FetchContent_MakeAvailable(opencv_header)
+# download OpenCV headers
+FetchContent_Declare(
+    opencv_header
+    URL
+        https://frcmaven.wpi.edu/artifactory/release/edu/wpi/first/thirdparty/${OPENCV_YEAR}/opencv/opencv-cpp/${OPENCV_VERSION}/opencv-cpp-${OPENCV_VERSION}-headers.zip
+)
+FetchContent_MakeAvailable(opencv_header)
 
-    # This probably doesn't work great with shared libraries, but I don't care about those right now
-    file(
-        GLOB_RECURSE OPENCV_LIB_PATH
-        "${opencv_lib_SOURCE_DIR}/**/*.lib"
-        "${opencv_lib_SOURCE_DIR}/**/*.so*"
-        "${opencv_lib_SOURCE_DIR}/**/*.*.dylib"
-    )
-    set(OPENCV_INCLUDE_PATH ${opencv_header_SOURCE_DIR})
-    set(OPENCV_LIBRARIES ${OPENCV_LIB_PATH})
-    message(STATUS "Using FRC OpenCV libraries: ${OPENCV_LIB_PATH}")
-else()
-    # Use system OpenCV
-    message(STATUS "OPENCV_ARCH not set, using system OpenCV")
-    find_package(OpenCV REQUIRED)
+file(
+    GLOB_RECURSE OPENCV_LIB_PATH
+    "${opencv_lib_SOURCE_DIR}/**/*.lib"
+    "${opencv_lib_SOURCE_DIR}/**/*.so*"
+    "${opencv_lib_SOURCE_DIR}/**/*.*.dylib"
+)
+set(OPENCV_INCLUDE_PATH ${opencv_header_SOURCE_DIR})
+set(OPENCV_LIBRARIES ${OPENCV_LIB_PATH})
+message(STATUS "Using FRC OpenCV libraries: ${OPENCV_LIB_PATH}")
 
-    set(OPENCV_INCLUDE_PATH ${OpenCV_INCLUDE_DIRS})
-    set(OPENCV_LIBRARIES ${OpenCV_LIBS})
-    message(STATUS "Found system OpenCV version: ${OpenCV_VERSION}")
-    message(STATUS "OpenCV include dirs: ${OpenCV_INCLUDE_DIRS}")
-    message(STATUS "OpenCV libraries: ${OpenCV_LIBS}")
-endif()
+# Also download wpimath
+FetchContent_Declare(
+    wpimath_header
+    URL
+        https://frcmaven.wpi.edu/artifactory/release/edu/wpi/first/wpimath/wpimath-cpp/${WPIMATH_VERSION}/wpimath-cpp-${WPIMATH_VERSION}-headers.zip
+)
+FetchContent_MakeAvailable(wpimath_header)
+set(WPIMATH_INCLUDE_PATH ${wpimath_header_SOURCE_DIR})
 
 # Openblas/suitesparse/friends
 # From https://github.com/wpilibsuite/thirdparty-ceres/blob/main/CMakeLists.txt
@@ -193,7 +188,7 @@ add_library(mrcal_jni SHARED ${INCLUDE_HPP} ${SRC_HPP} ${SRC_CPP})
 target_include_directories(
     mrcal_jni
     SYSTEM
-    PUBLIC ${JNI_INCLUDE_DIRS} ${OPENCV_INCLUDE_PATH} mrcal libdogleg
+    PUBLIC ${JNI_INCLUDE_DIRS} ${OPENCV_INCLUDE_PATH} mrcal libdogleg ${WPIMATH_INCLUDE_PATH}
 )
 add_dependencies(mrcal_jni generate_minimath)
 
@@ -206,7 +201,6 @@ target_link_libraries(
         ${OPENBLAS_TARGET}
         lapack
         fmt
-        Eigen3::Eigen # TODO link against wpilib or hide these symbols
 )
 
 # vnlog for the test script
@@ -216,11 +210,9 @@ target_include_directories(vnlog SYSTEM PUBLIC ${PROJECT_SOURCE_DIR}/vnlog)
 
 # Test script for checking our linker
 
-find_package(Eigen3 REQUIRED NO_MODULE)
-
 add_executable(mrcal_jni_test src/mrcal_test.cpp)
 
-target_link_libraries(mrcal_jni_test PUBLIC mrcal_jni Eigen3::Eigen)
+target_link_libraries(mrcal_jni_test PUBLIC mrcal_jni)
 
 target_include_directories(
     mrcal_jni_test
