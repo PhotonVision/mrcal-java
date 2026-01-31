@@ -8,7 +8,7 @@
       "name": "(gdb) Attach",
       "type": "cppdbg",
       "request": "attach",
-      "program": "/home/matt/github/mrcal-java/cmake_build/lib/libmrcal_jni.so",
+      "program": "${workspaceFolder}/cmake_build/lib/libmrcal_jni.so",
       "processId": "${command:pickProcess}",
       "MIMode": "gdb",
       "setupCommands": [

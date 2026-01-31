@@ -346,6 +346,7 @@ Java_org_photonvision_mrcal_MrCalJNI_compute_1uncertainty
 
   // Validate all arrays
   if (!observations.isValid() || !intrinsics.isValid() || !rtFrames.isValid()) {
+    std::cout << "bad array in?" << std::endl;
     return nullptr;
   }
 
@@ -362,12 +363,14 @@ Java_org_photonvision_mrcal_MrCalJNI_compute_1uncertainty
         rtFrames.asSpan<mrcal_pose_t>(), warp, imagerSize, calobjectSize,
         boardSpacing, sampleRes);
   } catch (...) {
+    std::cout << "exception thrown" << std::endl;
     return nullptr;
   }
 
   jsize resultSize = result.size() * 3;
   jdoubleArray jResult = env->NewDoubleArray(resultSize);
   if (jResult == nullptr) {
+    std::cout << "waah" << std::endl;
     return nullptr;
   }
 
