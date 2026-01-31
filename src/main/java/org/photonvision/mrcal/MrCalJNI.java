@@ -85,6 +85,24 @@ public class MrCalJNI {
             }
         }
 
+        public double[] framePosesToRtToref() {
+            double[] ret = new double[optimizedPoses.size() * 6];
+
+            for (int i = 0; i < optimizedPoses.size(); i++) {
+                var pose = optimizedPoses.get(i);
+                var r = pose.getRotation().toVector();
+                var t = pose.getTranslation().toVector();
+                ret[i * 6 + 0] = r.get(0);
+                ret[i * 6 + 1] = r.get(1);
+                ret[i * 6 + 2] = r.get(2);
+                ret[i * 6 + 3] = t.get(0);
+                ret[i * 6 + 4] = t.get(1);
+                ret[i * 6 + 5] = t.get(2);
+            }
+
+            return ret;
+        }
+
         @Override
         public String toString() {
             return "MrCalResult [success="
@@ -137,20 +155,12 @@ public class MrCalJNI {
             double warpX,
             double warpY);
 
-    public static MrCalResult calibrateCamera(
+    public static double[] makeObservations(
             List<MatOfPoint2f> board_corners,
             List<MatOfFloat> board_corner_levels,
             int boardWidth,
-            int boardHeight,
-            double boardSpacing,
-            int imageWidth,
-            int imageHeight,
-            double focalLen) {
+            int boardHeight) {
         double[] observations = new double[boardWidth * boardHeight * 3 * board_corners.size()];
-
-        if (!(board_corners.size() == board_corner_levels.size())) {
-            return new MrCalResult(false);
-        }
 
         int i = 0;
         for (int b = 0; b < board_corners.size(); b++) {
@@ -159,7 +169,7 @@ public class MrCalJNI {
             var corners = board.toArray();
 
             if (!(corners.length == levels.length && corners.length == boardWidth * boardHeight)) {
-                return new MrCalResult(false);
+                return null;
             }
 
             // Assume that we're correct in terms of row/column major-ness (lol)
@@ -176,8 +186,28 @@ public class MrCalJNI {
         }
 
         if (i * 3 != observations.length) {
+            return null;
+        }
+
+        return observations;
+    }
+
+    public static MrCalResult calibrateCamera(
+            List<MatOfPoint2f> board_corners,
+            List<MatOfFloat> board_corner_levels,
+            int boardWidth,
+            int boardHeight,
+            double boardSpacing,
+            int imageWidth,
+            int imageHeight,
+            double focalLen) {
+
+        if (!(board_corners.size() == board_corner_levels.size())) {
             return new MrCalResult(false);
         }
+
+        var observations =
+                makeObservations(board_corners, board_corner_levels, boardWidth, boardHeight);
 
         return mrcal_calibrate_camera(
                 observations, boardWidth, boardHeight, boardSpacing, imageWidth, imageHeight, focalLen);
