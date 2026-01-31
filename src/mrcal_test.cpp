@@ -234,7 +234,7 @@ int main() {
     if (!outFile)
       return -1;
     for (auto &point : ret) {
-      outFile << fmt::format("{}, {}, {}\n", point.x, point.y, point.z);
+      outFile << point.x << "," << point.y << "," << point.z << "\n";
     }
   }
 }

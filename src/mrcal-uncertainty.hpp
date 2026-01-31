@@ -20,8 +20,6 @@
 #include "spy.hpp"
 #include <Eigen/Dense>
 #include <cholmod.h>
-#include <fmt/core.h>
-#include <fmt/ranges.h>
 #include <mrcal.h>
 #include <opencv2/core/types.hpp>
 #include <poseutils.h>

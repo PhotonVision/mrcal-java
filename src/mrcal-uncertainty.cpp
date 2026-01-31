@@ -24,24 +24,6 @@
 
 using namespace cv;
 
-template <> struct fmt::formatter<mrcal_point2_t> {
-  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
-
-  template <typename FormatContext>
-  auto format(const mrcal_point2_t &p, FormatContext &ctx) const {
-    return fmt::format_to(ctx.out(), "({}, {})", p.x, p.y);
-  }
-};
-
-template <> struct fmt::formatter<mrcal_point3_t> {
-  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
-
-  template <typename FormatContext>
-  auto format(const mrcal_point3_t &p, FormatContext &ctx) const {
-    return fmt::format_to(ctx.out(), "({}, {}, {})", p.x, p.y, p.z);
-  }
-};
-
 using EigenPoint2 = Eigen::Matrix<double, 2, 1>;
 using EigenPoint3 = Eigen::Matrix<double, 3, 1>;
 
