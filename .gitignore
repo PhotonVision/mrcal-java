@@ -37,3 +37,5 @@ cmake_build/*
 bin/
 
 vcpkg_installed
+
+.venv
