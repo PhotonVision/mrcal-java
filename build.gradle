@@ -84,7 +84,7 @@ spotless {
     format 'misc', {
         target fileTree('.') {
             include '**/*.md', '**/.gitignore'
-            exclude '**/build/**', '**/build-*/**', '**/node_modules/**'
+            exclude '**/build/**', '**/build-*/**', '**/node_modules/**', "**/cmake_build/**"
         }
         trimTrailingWhitespace()
         indentWithSpaces(2)
