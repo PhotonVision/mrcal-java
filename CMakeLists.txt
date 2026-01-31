@@ -205,7 +205,6 @@ target_link_libraries(
         SuiteSparse::SuiteSparseConfig_static
         ${OPENBLAS_TARGET}
         lapack
-        fmt
 )
 
 # vnlog for the test script
