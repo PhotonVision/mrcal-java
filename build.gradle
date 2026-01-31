@@ -37,6 +37,7 @@ dependencies {
 
     implementation wpilibTools.deps.wpilibJava("wpimath")
     implementation wpilibTools.deps.wpilibJava("wpiunits")
+    implementation wpilibTools.deps.wpilibJava("wpiutil")
     implementation "com.fasterxml.jackson.core:jackson-annotations:2.15.2"
 }
 
