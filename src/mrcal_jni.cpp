@@ -362,7 +362,7 @@ Java_org_photonvision_mrcal_MrCalJNI_compute_1uncertainty
         observations.asSpan<mrcal_point3_t>(), intrinsics.asDoubleSpan(),
         rtFrames.asSpan<mrcal_pose_t>(), warp, imagerSize, calobjectSize,
         boardSpacing, sampleRes);
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     std::cout << "exception thrown" << e.what() << std::endl;
     return nullptr;
   }
