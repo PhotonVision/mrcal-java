@@ -273,16 +273,15 @@ Java_org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate_1camera
 /*
  * Class:     org_photonvision_mrcal_MrCalJNI_undistort
  * Method:    1mrcal
- * Signature: (JJJJIIIII)Z
+ * Signature: (JJJIIIII)Z
  */
 JNIEXPORT jboolean JNICALL
 Java_org_photonvision_mrcal_MrCalJNI_undistort_1mrcal
-  (JNIEnv *, jclass, jlong srcMat, jlong dstMat, jlong camMat, jlong distCoeffs,
+  (JNIEnv *, jclass, jlong dstMat, jlong camMat, jlong distCoeffs,
    jint lensModelOrdinal, jint order, jint Nx, jint Ny, jint fov_x_deg)
 {
   return undistort_mrcal(
-      reinterpret_cast<cv::Mat *>(srcMat), reinterpret_cast<cv::Mat *>(dstMat),
-      reinterpret_cast<cv::Mat *>(camMat),
+      reinterpret_cast<cv::Mat *>(dstMat), reinterpret_cast<cv::Mat *>(camMat),
       reinterpret_cast<cv::Mat *>(distCoeffs),
       static_cast<CameraLensModel>(lensModelOrdinal),
       static_cast<uint16_t>(order), static_cast<uint16_t>(Nx),

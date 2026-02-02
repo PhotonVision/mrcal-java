@@ -501,7 +501,7 @@ std::unique_ptr<mrcal_result> mrcal_main(
   return result;
 }
 
-bool undistort_mrcal(const cv::Mat *src, cv::Mat *dst, const cv::Mat *cameraMat,
+bool undistort_mrcal(cv::Mat *dst, const cv::Mat *cameraMat,
                      const cv::Mat *distCoeffs, CameraLensModel lensModel,
                      // Extra stuff for splined stereographic models
                      uint16_t order, uint16_t Nx, uint16_t Ny,
@@ -536,15 +536,15 @@ bool undistort_mrcal(const cv::Mat *src, cv::Mat *dst, const cv::Mat *cameraMat,
     return false;
   }
 
-  if (!(dst->cols == 2 && dst->cols == 2)) {
+  if (!(dst->cols == 2)) {
     std::cerr << "Bad input array size\n";
     return false;
   }
-  if (!(dst->type() == CV_64FC2 && dst->type() == CV_64FC2)) {
+  if (!(dst->type() == CV_64FC2)) {
     std::cerr << "Bad input type -- need CV_64F\n";
     return false;
   }
-  if (!(dst->isContinuous() && dst->isContinuous())) {
+  if (!(dst->isContinuous())) {
     std::cerr << "Bad input array -- need continuous\n";
     return false;
   }
