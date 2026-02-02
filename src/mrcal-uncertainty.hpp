@@ -17,7 +17,6 @@
 
 #pragma once
 
-#include "spy.hpp"
 #include <Eigen/Dense>
 #include <cholmod.h>
 #include <mrcal.h>

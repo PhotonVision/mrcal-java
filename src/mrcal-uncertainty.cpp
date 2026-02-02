@@ -188,11 +188,6 @@ _dq_db_projection_uncertainty(mrcal_point3_t pcam, mrcal_lensmodel_t lensmodel,
   // p_ref = pcam rotated by r (always zero1)
   Eigen::Matrix<double, 1, 3> p_ref{pcam.x, pcam.y, pcam.z};
 
-  // fmt::print("_dq_db_projection_uncertainty: ==========\n");
-  // fmt::print("q={}\n", q);
-  // std::cout << "dq_dpcam:\n" << dq_dpcam << "\n";
-  // fmt::print("dq_dintrinsics={}\n", dq_dintrinsics);
-
   // prepare dq_db. Mrcal does this as a 40x60x2xNstate tensor, but we
   // are only projecting one point
   Eigen::Matrix<double, 2, Eigen::Dynamic> dq_db(2, Nstate);
@@ -263,17 +258,10 @@ _dq_db_projection_uncertainty(mrcal_point3_t pcam, mrcal_lensmodel_t lensmodel,
   // Shape after mean and xchg: (2, 3) for at_infinity
   // Each frame gets 3 DOF (translation only)
   for (size_t frame = 0; frame < Nboards; frame++) {
-    // std::cout << "Populating frame " << frame << "\n";
-    // std::cout << dq_dframes[frame] / Nboards << "\n";
-
     int frame_start = istate_frames0 + frame * 6;
     // Populate first 3 columns of each frame's 6 DOF block with the mean
     dq_db.block(0, frame_start, 2, 3) = dq_dframes[frame] / Nboards;
   }
-
-  // Eigen::IOFormat CommaFmt(Eigen::StreamPrecision, Eigen::DontAlignCols, ",
-  // ", "\n", "", ""); std::cout << "dq_db final:\n"
-  //           << dq_db.format(CommaFmt) << "\n";
 
   return dq_db;
 }
@@ -457,7 +445,7 @@ double projection_uncertainty_fast(const CalibrationUncertaintyContext &context,
                                    mrcal_lensmodel_t lensmodel,
                                    std::span<mrcal_pose_t> rt_ref_frames,
                                    std::span<double> intrinsics) {
-  // Prepare inputs (same as before)
+  // Prepare inputs
   mrcal_problem_selections_t problem_selections{0};
   problem_selections.do_optimize_intrinsics_core = true;
   problem_selections.do_optimize_intrinsics_distortions = true;
@@ -532,29 +520,16 @@ std::vector<mrcal_point3_t> compute_uncertainty(
       calobjectSize.width, calobjectSize.height, calobjectSpacing, imagerSize,
       warp);
 
-  // #ifndef SLEIPNIR_DISABLE_DIAGNOSTICS
-  //   slp::Spy<double> spy_J_observations(
-  //       "J_observations.spy", "J_observations Matrix", "Measurements",
-  //       "State", context.Nmeasurements_boards, context.Nstate);
-  //   spy_J_observations.add(context.J_observations);
-
-  //   auto JtJ = context.J_observations.transpose() * context.J_observations;
-  //   slp::Spy<double> spy_JtJ("JtJ.spy", "JtJ Matrix (Normal Equations)",
-  //   "State",
-  //                            "State", context.Nstate, context.Nstate);
-  //   spy_JtJ.add(JtJ);
-  // #endif
-
-  // hard code some stuff
+  // generate grid of samples in (u, v) pixels
   auto q = sample_imager(sampleResolution, imagerSize);
 
-  // and unproject
+  // unproject
   std::vector<mrcal_point3_t> pcam;
   pcam.resize(q.size());
   mrcal_unproject(pcam.data(), q.data(), q.size(), &lensmodel,
                   intrinsics.data());
 
-  // Always normalize, setting rows with any non-finite elements to zero
+  // normalize, setting rows with any non-finite elements to zero
   for (auto &p : pcam) {
     double nrm = std::sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
     if (std::isfinite(nrm) && nrm > 0) {
@@ -585,29 +560,7 @@ std::vector<mrcal_point3_t> compute_uncertainty(
     auto duration =
         std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 
-    // fmt::print("{}, {}, {}\n", qi.x, qi.y, uncertainty);
-
     ret.push_back(mrcal_point3_t{qi.x, qi.y, uncertainty});
-
-    // #ifndef SLEIPNIR_DISABLE_DIAGNOSTICS
-    //     if (i < 5) {
-    //       int istate_frames0 = mrcal_state_index_frames(
-    //           0, 1, 0, 6, 0, 0, 6, problem_selections, &lensmodel);
-
-    //       auto dq_db = _dq_db_projection_uncertainty(pi, lensmodel,
-    //       rt_ref_frames,
-    //                                                  context.Nstate,
-    //                                                  istate_frames0,
-    //                                                  intrinsics);
-
-    //       Eigen::SparseMatrix<double> dq_db_sparse = dq_db.sparseView();
-    //       slp::Spy<double> spy_gradient(fmt::format("gradient_{}.spy", i),
-    //                                     fmt::format("Gradient dq_db Point
-    //                                     {}", i), "Output", "State", 2,
-    //                                     context.Nstate);
-    //       spy_gradient.add(dq_db_sparse);
-    //     }
-    // #endif
   }
 
   return ret;
