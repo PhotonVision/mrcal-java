@@ -61,7 +61,7 @@ spotless {
     java {
         target fileTree('.') {
             include '**/*.java'
-            exclude '**/build/**', '**/build-*/**', '**/src/generated/**'
+            exclude '**/build/**', '**/build-*/**', '**/src/generated/**', "**/cmake_build/**"
         }
         toggleOffOn()
         googleJavaFormat()
@@ -74,7 +74,7 @@ spotless {
     groovyGradle {
         target fileTree('.') {
             include '**/*.gradle'
-            exclude '**/build/**', '**/build-*/**'
+            exclude '**/build/**', '**/build-*/**', "**/cmake_build/**"
         }
         greclipse()
         indentWithSpaces(4)

@@ -301,7 +301,8 @@ public class MrCalJNI {
      * level is converted to a weight (0.5^level), and negative levels indicate undetected corners.
      *
      * @param board_corners List of detected chessboard corners for each frame
-     * @param board_corner_levels List of detection levels for each corner in each frame. Point weight is calculated as weight = 0.5^level. Negative weight will ignore this observation
+     * @param board_corner_levels List of detection levels for each corner in each frame. Point weight
+     *     is calculated as weight = 0.5^level. Negative weight will ignore this observation
      * @param boardWidth Number of internal corners horizontally
      * @param boardHeight Number of internal corners vertically
      * @param boardSpacing Physical spacing between corners (meters)
