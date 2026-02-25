@@ -6,6 +6,7 @@ modifiableFileExclude {
   mrcal/
   libdogleg/
   vnlog/
+  gradle/
 }
 
 includeProject {
