@@ -65,8 +65,8 @@ spotless {
         }
         toggleOffOn()
         googleJavaFormat()
-        indentWithTabs(2)
-        indentWithSpaces(4)
+        leadingSpacesToTabs(2)
+        leadingTabsToSpaces(4)
         removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()
@@ -77,7 +77,7 @@ spotless {
             exclude '**/build/**', '**/build-*/**', "**/cmake_build/**"
         }
         greclipse()
-        indentWithSpaces(4)
+        leadingTabsToSpaces(4)
         trimTrailingWhitespace()
         endWithNewline()
     }
@@ -87,7 +87,7 @@ spotless {
             exclude '**/build/**', '**/build-*/**', '**/node_modules/**', "**/cmake_build/**"
         }
         trimTrailingWhitespace()
-        indentWithSpaces(2)
+        leadingTabsToSpaces(2)
         endWithNewline()
     }
 }
