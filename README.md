@@ -19,3 +19,9 @@ cpan -i List::MoreUtils
 cmake -B build -DOPENCV_ARCH=osxuniversal -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
 cmake --build build
 ```
+
+# Uncertainty testing
+
+I configure with `cmake -B cmake_build`, build with `cmake --build cmake_build` and run with `time ./cmake_build/bin/mrcal_jni_test > /dev/null`
+
+I benchmark with `perf record -F 99 -g ./cmake_build/bin/mrcal_jni_test`

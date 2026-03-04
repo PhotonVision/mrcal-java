@@ -27,6 +27,7 @@
 #include <string>
 #include <vector>
 
+#include "mrcal-uncertainty.hpp"
 #include "mrcal_wrapper.h"
 
 // JClass helper from wpilib
@@ -272,18 +273,108 @@ Java_org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate_1camera
 /*
  * Class:     org_photonvision_mrcal_MrCalJNI_undistort
  * Method:    1mrcal
- * Signature: (JJJJIIIII)Z
+ * Signature: (JJJIIIII)Z
  */
 JNIEXPORT jboolean JNICALL
 Java_org_photonvision_mrcal_MrCalJNI_undistort_1mrcal
-  (JNIEnv *, jclass, jlong srcMat, jlong dstMat, jlong camMat, jlong distCoeffs,
+  (JNIEnv *, jclass, jlong dstMat, jlong camMat, jlong distCoeffs,
    jint lensModelOrdinal, jint order, jint Nx, jint Ny, jint fov_x_deg)
 {
   return undistort_mrcal(
-      reinterpret_cast<cv::Mat *>(srcMat), reinterpret_cast<cv::Mat *>(dstMat),
-      reinterpret_cast<cv::Mat *>(camMat),
+      reinterpret_cast<cv::Mat *>(dstMat), reinterpret_cast<cv::Mat *>(camMat),
       reinterpret_cast<cv::Mat *>(distCoeffs),
       static_cast<CameraLensModel>(lensModelOrdinal),
       static_cast<uint16_t>(order), static_cast<uint16_t>(Nx),
       static_cast<uint16_t>(Ny), static_cast<uint16_t>(fov_x_deg));
+}
+
+// Helper class for managing JNI array access with automatic cleanup. Thanks,
+// Claude
+template <typename T> class JNIArrayView {
+public:
+  JNIArrayView(JNIEnv *env, jdoubleArray jArray)
+      : env_(env), jArray_(jArray), data_(nullptr), size_(0) {
+    if (jArray) {
+      size_ = env->GetArrayLength(jArray);
+      data_ = env->GetDoubleArrayElements(jArray, nullptr);
+    }
+  }
+
+  ~JNIArrayView() {
+    if (data_) {
+      env_->ReleaseDoubleArrayElements(jArray_, data_, JNI_ABORT);
+    }
+  }
+
+  // Delete copy operations to prevent double-free
+  JNIArrayView(const JNIArrayView &) = delete;
+  JNIArrayView &operator=(const JNIArrayView &) = delete;
+
+  bool isValid() const { return data_ != nullptr; }
+
+  template <typename U = T> std::span<U> asSpan(jsize elementSize = sizeof(T)) {
+    return std::span<U>(reinterpret_cast<U *>(data_),
+                        size_ / (sizeof(U) / sizeof(double)));
+  }
+
+  std::span<double> asDoubleSpan() { return std::span<double>(data_, size_); }
+
+private:
+  JNIEnv *env_;
+  jdoubleArray jArray_;
+  jdouble *data_;
+  jsize size_;
+};
+
+/*
+ * Class:     org_photonvision_mrcal_MrCalJNI_compute
+ * Method:    1uncertainty
+ * Signature: ([D[D[DIIDIIIIDD)[D
+ */
+JNIEXPORT jdoubleArray JNICALL
+Java_org_photonvision_mrcal_MrCalJNI_compute_1uncertainty
+  (JNIEnv *env, jclass, jdoubleArray jObservations, jdoubleArray jIntrinsics,
+   jdoubleArray jRtRefFrames, jint boardWidth, jint boardHeight,
+   jdouble boardSpacing, jint imageWidth, jint imageHeight,
+   jint sampleGridWidth, jint sampleGridHeight, jdouble warpX, jdouble warpY)
+{
+  // Create RAII wrappers - automatic cleanup on scope exit
+  JNIArrayView<mrcal_point3_t> observations(env, jObservations);
+  JNIArrayView<double> intrinsics(env, jIntrinsics);
+  JNIArrayView<mrcal_pose_t> rtFrames(env, jRtRefFrames);
+
+  // Validate all arrays
+  if (!observations.isValid() || !intrinsics.isValid() || !rtFrames.isValid()) {
+    std::cout << "bad array in?" << std::endl;
+    return nullptr;
+  }
+
+  // Setup parameters
+  mrcal_calobject_warp_t warp{.x2 = warpX, .y2 = warpY};
+  cv::Size imagerSize(imageWidth, imageHeight);
+  cv::Size calobjectSize(boardWidth, boardHeight);
+  cv::Size sampleRes(sampleGridWidth, sampleGridHeight);
+
+  std::vector<mrcal_point3_t> result;
+  try {
+    result = compute_uncertainty(
+        observations.asSpan<mrcal_point3_t>(), intrinsics.asDoubleSpan(),
+        rtFrames.asSpan<mrcal_pose_t>(), warp, imagerSize, calobjectSize,
+        boardSpacing, sampleRes);
+  } catch (const std::exception &e) {
+    std::cout << "exception thrown -- " << e.what() << std::endl;
+    return nullptr;
+  }
+
+  jsize resultSize = result.size() * 3;
+  jdoubleArray jResult = env->NewDoubleArray(resultSize);
+  if (jResult == nullptr) {
+    std::cout << "waah" << std::endl;
+    return nullptr;
+  }
+
+  // point3's are just packed doubles so we can do trickery
+  env->SetDoubleArrayRegion(jResult, 0, resultSize,
+                            reinterpret_cast<const double *>(result.data()));
+  return jResult;
 }

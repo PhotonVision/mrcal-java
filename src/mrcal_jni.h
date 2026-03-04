@@ -44,6 +44,16 @@ Java_org_photonvision_mrcal_MrCalJNI_undistort_1mrcal(JNIEnv *, jclass, jlong,
                                                       jlong, jlong, jlong, jint,
                                                       jint, jint, jint, jint);
 
+/*
+ * Class:     org_photonvision_mrcal_MrCalJNI
+ * Method:    compute_uncertainty
+ * Signature: ([D[D[DIIDIIII)[D
+ */
+JNIEXPORT jdoubleArray JNICALL
+Java_org_photonvision_mrcal_MrCalJNI_compute_1uncertainty(
+    JNIEnv *, jclass, jdoubleArray, jdoubleArray, jdoubleArray, jint, jint,
+    jdouble, jint, jint, jint, jint, jdouble, jdouble);
+
 #ifdef __cplusplus
 } // extern "C"
 #endif

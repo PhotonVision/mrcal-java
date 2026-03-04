@@ -32,12 +32,12 @@ dependencies {
     implementation wpilibTools.deps.wpilibOpenCvJava("frc2025", "4.10.0-3")
 
     // Junit
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.2")
-    testImplementation("org.junit.jupiter:junit-jupiter-params:5.8.2")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.2")
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.7.1'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     implementation wpilibTools.deps.wpilibJava("wpimath")
     implementation wpilibTools.deps.wpilibJava("wpiunits")
+    implementation wpilibTools.deps.wpilibJava("wpiutil")
     implementation "com.fasterxml.jackson.core:jackson-annotations:2.15.2"
 }
 
@@ -57,6 +57,41 @@ test {
     useJUnitPlatform()
 }
 
+spotless {
+    java {
+        target fileTree('.') {
+            include '**/*.java'
+            exclude '**/build/**', '**/build-*/**', '**/src/generated/**', "**/cmake_build/**"
+        }
+        toggleOffOn()
+        googleJavaFormat()
+        leadingSpacesToTabs(2)
+        leadingTabsToSpaces(4)
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+    groovyGradle {
+        target fileTree('.') {
+            include '**/*.gradle'
+            exclude '**/build/**', '**/build-*/**', "**/cmake_build/**"
+        }
+        greclipse()
+        leadingTabsToSpaces(4)
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+    format 'misc', {
+        target fileTree('.') {
+            include '**/*.md', '**/.gitignore'
+            exclude '**/build/**', '**/build-*/**', '**/node_modules/**', "**/cmake_build/**"
+        }
+        trimTrailingWhitespace()
+        leadingTabsToSpaces(2)
+        endWithNewline()
+    }
+}
+
 def nativeName = wpilibTools.platformMapper.platformPath
 ext.outputsFolder = file("$buildDir/outputs")
 
@@ -72,6 +107,16 @@ tasks.register('copyNativeLibrary', Sync) {
 
     build.dependsOn it
     publish.dependsOn it
+}
+
+tasks.named('test', Test) {
+    useJUnitPlatform()
+
+    maxHeapSize = '1G'
+
+    testLogging {
+        events "passed"
+    }
 }
 
 apply from: "publish.gradle"
