@@ -160,7 +160,6 @@ std::vector<mrcal_point2_t> sample_imager(Size numSamples, Size imagerSize) {
 }
 
 // The derivative of q (pixel space location/s) wrt b (state vector)
-// at some point this should be a matrix
 Eigen::Matrix<double, 2, Eigen::Dynamic, Eigen::RowMajor>
 _dq_db_projection_uncertainty(mrcal_point3_t pcam, mrcal_lensmodel_t lensmodel,
                               std::span<mrcal_pose_t> rt_ref_frame, int Nstate,
