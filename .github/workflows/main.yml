@@ -75,7 +75,7 @@ jobs:
         ARTIFACTORY_API_KEY: ${{ secrets.ARTIFACTORY_API_KEY }}
       if: github.event_name == 'push'
 
-    - uses: actions/upload-artifact@v5
+    - uses: actions/upload-artifact@v7
       with:
         name: libmrcal-jar-${{ matrix.arch-name }}
         path: ${{ github.workspace }}/build/libs/*.jar
