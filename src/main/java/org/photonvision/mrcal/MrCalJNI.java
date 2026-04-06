@@ -17,15 +17,15 @@
 
 package org.photonvision.mrcal;
 
-import org.wpilib.math.linalg.VecBuilder;
-import org.wpilib.math.geometry.Pose3d;
-import org.wpilib.math.geometry.Rotation3d;
-import org.wpilib.math.geometry.Translation3d;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.opencv.core.MatOfFloat;
 import org.opencv.core.MatOfPoint2f;
+import org.wpilib.math.geometry.Pose3d;
+import org.wpilib.math.geometry.Rotation3d;
+import org.wpilib.math.geometry.Translation3d;
+import org.wpilib.math.linalg.VecBuilder;
 
 public class MrCalJNI {
     public static enum CameraLensModel {
