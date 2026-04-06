@@ -1,7 +1,7 @@
 plugins {
     id "java"
-    id 'org.photonvision.tools.WpilibTools' version '2.3.1-photon'
-    id "edu.wpi.first.wpilib.repositories.WPILibRepositoriesPlugin" version "2020.2"
+    id 'org.photonvision.tools.WpilibTools' version '3.0.0-photon'
+    id "org.wpilib.WPILibRepositoriesPlugin" version "2027.0.0"
     id "com.diffplug.spotless" version "8.1.0"
 }
 
