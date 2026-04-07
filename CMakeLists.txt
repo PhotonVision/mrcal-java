@@ -22,7 +22,7 @@ include(FetchContent)
 # https://github.com/PhotonVision/photonvision/blob/main/build.gradle
 set(OPENCV_YEAR "frc2025")
 set(OPENCV_VERSION "4.10.0-3")
-set(WPIMATH_VERSION "2026.2.1")
+set(WPIMATH_VERSION "2027.0.0-alpha-4")
 
 # type can be "", "debug", "static", or "staticdebug"
 set(OPENCV_TYPE "")
