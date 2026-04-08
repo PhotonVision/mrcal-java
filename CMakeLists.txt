@@ -58,7 +58,7 @@ message(STATUS "Using FRC OpenCV libraries: ${OPENCV_LIB_PATH}")
 FetchContent_Declare(
     wpimath_header
     URL
-        https://frcmaven.wpi.edu/artifactory/wpilib-mvn-release-2027-local/org/wpilib/wpimath/wpimath-cpp/${WPIMATH_VERSION}/wpimath-cpp-${WPIMATH_VERSION}-headers.zip
+        https://frcmaven.wpi.edu/artifactory/release-2027/org/wpilib/wpimath/wpimath-cpp/${WPIMATH_VERSION}/wpimath-cpp-${WPIMATH_VERSION}-headers.zip
 )
 FetchContent_MakeAvailable(wpimath_header)
 set(WPIMATH_INCLUDE_PATH ${wpimath_header_SOURCE_DIR})
