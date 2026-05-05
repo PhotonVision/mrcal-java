@@ -29,10 +29,10 @@ java {
     targetCompatibility = JavaVersion.VERSION_21
 }
 
-wpilibTools.deps.wpilibVersion = "2027.0.0-alpha-4"
+wpilibTools.deps.wpilibVersion = "2027.0.0-alpha-5"
 
 dependencies {
-    implementation wpilibTools.deps.wpilibOpenCvJava("frc2025", "4.10.0-3")
+    implementation wpilibTools.deps.wpilibOpenCvJava("frc2027", "4.10.0-3")
 
     // Junit
     testImplementation 'org.junit.jupiter:junit-jupiter:5.7.1'
