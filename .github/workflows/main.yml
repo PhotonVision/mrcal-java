@@ -79,32 +79,3 @@ jobs:
       with:
         name: libmrcal-jar-${{ matrix.arch-name }}
         path: ${{ github.workspace }}/build/libs/*.jar
-
-  release:
-    needs: build-host
-    runs-on: ubuntu-24.04
-    steps:
-      # Download literally every single artifact. This also downloads client and docs,
-      # but the filtering below won't pick these up (I hope)
-      - uses: actions/download-artifact@v5
-
-      - run: find
-
-      # Push to dev release on pushes to master
-      - uses: pyTooling/Actions/releaser@r6
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          tag: 'Dev'
-          rm: true
-          files: |
-            **/*
-        if: github.event_name == 'push'
-
-      # Push to actual release, if tagged
-      - uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            **/*
-        if: startsWith(github.ref, 'refs/tags/v')
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
