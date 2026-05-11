@@ -29,7 +29,7 @@ java {
     targetCompatibility = JavaVersion.VERSION_25
 }
 
-wpilibTools.deps.wpilibVersion = "2027.0.0-alpha-5"
+wpilibTools.deps.wpilibVersion = "2027.0.0-alpha-6"
 
 dependencies {
     implementation wpilibTools.deps.wpilibOpenCvJava("2027-4.13.0-3")
