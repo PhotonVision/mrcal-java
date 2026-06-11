@@ -21,6 +21,7 @@ jobs:
             arch-name: linuxx86-64
           - os: ubuntu-24.04-arm
             arch-name: linuxarm64
+            extra-flags: -DARM64_BUILD=ON
           - os: windows-latest
             arch-name: windowsx86-64
             extra-flags: -DCMAKE_CXX_COMPILER=clang-cl -DCMAKE_C_COMPILER=clang-cl

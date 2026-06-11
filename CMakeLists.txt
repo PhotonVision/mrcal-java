@@ -14,6 +14,11 @@ if(WITH_ASAN)
     add_compile_options(-fsanitize=address -g -Wall -fsanitize=undefined)
 endif()
 
+# GCC-specific flags to catch uninitialized variables and undefined behavior
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    add_compile_options(-Wuninitialized -Werror=uninitialized -fno-common)
+endif()
+
 # Include FetchContent module for downloading dependencies
 include(FetchContent)
 
@@ -75,20 +80,53 @@ set(USE_LOCKING ON)
 set(USE_THREAD OFF)
 set(NOFORTRAN ON)
 
-# ARMv8 is what our coprocessors run, but not the CI machines. Ensure we don't accidentally include ARMv9 instructions
-if(
-    CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64"
-    AND CMAKE_SYSTEM_NAME STREQUAL "Linux"
-)
-    set(TARGET ARMV8)
-endif()
 # We need PIC for this to work as a shared library
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Silence OpenBLAS/LAPACK warnings
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -w")
+
 if(NOT APPLE)
     set(BLA_VENDOR OpenBLAS)
+
+    if(ARM64_BUILD)
+        # ----------------------------------------------------------------
+        # Variables for subdirectory builds must be set in the parent cache
+        # BEFORE FetchContent_MakeAvailable.
+        #
+        # We also force CMAKE_CROSSCOMPILING so OpenBLAS skips its getarch
+        # host-CPU detection (which would detect the build machine's CPU,
+        # potentially a Neoverse/SVE host, and silently override TARGET).
+        # Without this, TARGET=ARMV8 is ignored when not cross-compiling.
+        # ----------------------------------------------------------------
+
+        # Force OpenBLAS to treat this as a cross-compile so it respects TARGET
+        # and does not run getarch to auto-detect the build host's CPU.
+        set(CMAKE_CROSSCOMPILING TRUE CACHE BOOL "" FORCE)
+
+        # TARGET=ARMV8 selects the generic AArch64 kernel (NEON/ASIMD only).
+        # getarch2.c confirms ARMV8 sets: HAVE_NEON, HAVE_VFP, HAVE_VFPV3,
+        # HAVE_VFPV4 — and critically does NOT set HAVE_SVE.
+        # Do NOT use: ARMV8SVE, NEOVERSEN1, NEOVERSEN2, NEOVERSEV1, CORTEXA510,
+        # CORTEXX2, ARMV9 — all of those enable SVE kernels.
+        set(TARGET "ARMV8" CACHE STRING "" FORCE)
+
+        # Disable dynamic multi-arch dispatch. If left ON, OpenBLAS compiles
+        # kernels for every supported core including SVE targets and picks one
+        # at runtime — your RK3588 could still land on an SVE kernel.
+        set(DYNAMIC_ARCH OFF CACHE BOOL "" FORCE)
+        set(DYNAMIC_OLDER OFF CACHE BOOL "" FORCE)
+
+        # Lock the compiler to ARMv8-A baseline. This prevents the compiler
+        # from emitting SVE intrinsics even if OpenBLAS assembly kernels
+        # happen to include SVE .S files guarded by preprocessor.
+        set(CMAKE_C_FLAGS_OPENBLAS "-march=armv8-a" CACHE STRING "" FORCE)
+        set(COMMON_OPT "-march=armv8-a" CACHE STRING "" FORCE)
+
+        # Explicitly set ARCH so OpenBLAS does not re-detect it.
+        set(ARCH "aarch64" CACHE STRING "" FORCE)
+    endif()
+
     FetchContent_Declare(
         BLAS
         GIT_REPOSITORY https://github.com/OpenMathLib/OpenBLAS.git
