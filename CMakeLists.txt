@@ -85,21 +85,55 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Silence OpenBLAS/LAPACK warnings
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -w")
+
 if(NOT APPLE)
     set(BLA_VENDOR OpenBLAS)
-    # Ensure OpenBLAS uses only ARMv8 instructions and disables SVE
-    set(OPENBLAS_CFLAGS "-march=armv8-a")
+
+    if(ARM64_BUILD)
+        # ----------------------------------------------------------------
+        # Variables for subdirectory builds must be set in the parent cache 
+        # BEFORE FetchContent_MakeAvailable.
+        #
+        # We also force CMAKE_CROSSCOMPILING so OpenBLAS skips its getarch
+        # host-CPU detection (which would detect the build machine's CPU,
+        # potentially a Neoverse/SVE host, and silently override TARGET).
+        # Without this, TARGET=ARMV8 is ignored when not cross-compiling.
+        # ----------------------------------------------------------------
+
+        # Force OpenBLAS to treat this as a cross-compile so it respects TARGET
+        # and does not run getarch to auto-detect the build host's CPU.
+        set(CMAKE_CROSSCOMPILING TRUE CACHE BOOL "" FORCE)
+
+        # TARGET=ARMV8 selects the generic AArch64 kernel (NEON/ASIMD only).
+        # getarch2.c confirms ARMV8 sets: HAVE_NEON, HAVE_VFP, HAVE_VFPV3,
+        # HAVE_VFPV4 — and critically does NOT set HAVE_SVE.
+        # Do NOT use: ARMV8SVE, NEOVERSEN1, NEOVERSEN2, NEOVERSEV1, CORTEXA510,
+        # CORTEXX2, ARMV9 — all of those enable SVE kernels.
+        set(TARGET "ARMV8" CACHE STRING "" FORCE)
+
+        # Disable dynamic multi-arch dispatch. If left ON, OpenBLAS compiles
+        # kernels for every supported core including SVE targets and picks one
+        # at runtime — your RK3588 could still land on an SVE kernel.
+        set(DYNAMIC_ARCH OFF CACHE BOOL "" FORCE)
+        set(DYNAMIC_OLDER OFF CACHE BOOL "" FORCE)
+
+        # Lock the compiler to ARMv8-A baseline. This prevents the compiler
+        # from emitting SVE intrinsics even if OpenBLAS assembly kernels
+        # happen to include SVE .S files guarded by preprocessor.
+        set(CMAKE_C_FLAGS_OPENBLAS "-march=armv8-a" CACHE STRING "" FORCE)
+        set(COMMON_OPT "-march=armv8-a" CACHE STRING "" FORCE)
+
+        # Explicitly set ARCH so OpenBLAS does not re-detect it.
+        set(ARCH "aarch64" CACHE STRING "" FORCE)
+    endif()
+
     FetchContent_Declare(
         BLAS
         GIT_REPOSITORY https://github.com/OpenMathLib/OpenBLAS.git
         GIT_TAG v0.3.30
         OVERRIDE_FIND_PACKAGE
-        CMAKE_ARGS
-            -DCMAKE_C_FLAGS=${OPENBLAS_CFLAGS}
-            -DCMAKE_CXX_FLAGS=${OPENBLAS_CFLAGS}
-            -DDYNAMIC_ARCH=0
-            -DARCH=ARM64
-            -DTARGET=ARMV8
+        # NOTE: CMAKE_ARGS is intentionally absent — it does nothing for
+        # FetchContent subdirectory builds. All config is via cache vars above.
     )
     FetchContent_MakeAvailable(BLAS)
 
