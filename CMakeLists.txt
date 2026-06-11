@@ -14,6 +14,11 @@ if(WITH_ASAN)
     add_compile_options(-fsanitize=address -g -Wall -fsanitize=undefined)
 endif()
 
+# GCC-specific flags to catch uninitialized variables and undefined behavior
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    add_compile_options(-Wuninitialized -Werror=uninitialized -fno-common)
+endif()
+
 # Include FetchContent module for downloading dependencies
 include(FetchContent)
 
