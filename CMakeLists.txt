@@ -91,7 +91,7 @@ if(NOT APPLE)
 
     if(ARM64_BUILD)
         # ----------------------------------------------------------------
-        # Variables for subdirectory builds must be set in the parent cache 
+        # Variables for subdirectory builds must be set in the parent cache
         # BEFORE FetchContent_MakeAvailable.
         #
         # We also force CMAKE_CROSSCOMPILING so OpenBLAS skips its getarch
