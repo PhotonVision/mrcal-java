@@ -86,6 +86,7 @@ if(
     AND CMAKE_SYSTEM_NAME STREQUAL "Linux"
 )
     set(TARGET ARMV8)
+    set(ENV{TARGET} ARMV8)
 endif()
 # We need PIC for this to work as a shared library
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
