@@ -132,8 +132,6 @@ if(NOT APPLE)
         GIT_REPOSITORY https://github.com/OpenMathLib/OpenBLAS.git
         GIT_TAG v0.3.30
         OVERRIDE_FIND_PACKAGE
-        # NOTE: CMAKE_ARGS is intentionally absent — it does nothing for
-        # FetchContent subdirectory builds. All config is via cache vars above.
     )
     FetchContent_MakeAvailable(BLAS)
 
