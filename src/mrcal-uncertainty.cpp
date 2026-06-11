@@ -314,7 +314,6 @@ CalibrationUncertaintyContext create_calibration_uncertainty_context(
   std::vector<int32_t> Jt_i(N_j_nonzero);
   std::vector<double_t> Jt_x(N_j_nonzero);
 
-  // Initialize Jt_p[0] to 0 for sparse matrix validity
   Jt_p[0] = 0;
 
   cholmod_sparse Jt = {.nrow = static_cast<size_t>(Nstate),
@@ -480,9 +479,6 @@ std::vector<mrcal_point3_t> compute_uncertainty(
     cv::Size imagerSize, cv::Size calobjectSize, double calobjectSpacing,
     cv::Size sampleResolution) {
 
-  // Completely initialize lensmodel to zero to avoid uninitialized memory on
-  // ARM64 This is critical: uninitialized fields can cause crashes in
-  // BLAS/LAPACK operations
   mrcal_lensmodel_t lensmodel{};
   lensmodel.type = MRCAL_LENSMODEL_OPENCV8;
 
