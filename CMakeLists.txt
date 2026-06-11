@@ -80,14 +80,6 @@ set(USE_LOCKING ON)
 set(USE_THREAD OFF)
 set(NOFORTRAN ON)
 
-# ARMv8 is what our coprocessors run, but not the CI machines. Ensure we don't accidentally include ARMv9 instructions
-if(
-    CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64"
-    AND CMAKE_SYSTEM_NAME STREQUAL "Linux"
-)
-    set(TARGET ARMV8)
-    set(ENV{TARGET} ARMV8)
-endif()
 # We need PIC for this to work as a shared library
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
@@ -95,11 +87,19 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -w")
 if(NOT APPLE)
     set(BLA_VENDOR OpenBLAS)
+    # Ensure OpenBLAS uses only ARMv8 instructions and disables SVE
+    set(OPENBLAS_CFLAGS "-march=armv8-a")
     FetchContent_Declare(
         BLAS
         GIT_REPOSITORY https://github.com/OpenMathLib/OpenBLAS.git
         GIT_TAG v0.3.30
         OVERRIDE_FIND_PACKAGE
+        CMAKE_ARGS
+            -DCMAKE_C_FLAGS=${OPENBLAS_CFLAGS}
+            -DCMAKE_CXX_FLAGS=${OPENBLAS_CFLAGS}
+            -DDYNAMIC_ARCH=0
+            -DARCH=ARM64
+            -DTARGET=ARMV8
     )
     FetchContent_MakeAvailable(BLAS)
 
