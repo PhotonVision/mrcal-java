@@ -17,7 +17,6 @@
 
 #include "mrcal-uncertainty.hpp"
 #include <Eigen/SparseLU>
-#include <algorithm>
 #include <chrono>
 #include <memory>
 #include <utility>
