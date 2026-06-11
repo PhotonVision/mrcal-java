@@ -20,6 +20,7 @@
 #include <chrono>
 #include <memory>
 #include <utility>
+#include <algorithm>
 #include <vector>
 
 using namespace cv;
