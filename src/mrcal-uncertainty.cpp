@@ -269,15 +269,7 @@ _dq_db_projection_uncertainty(mrcal_point3_t pcam, mrcal_lensmodel_t lensmodel,
 double _observed_pixel_uncertainty_from_inputs(std::vector<double> &x,
                                                int num_measurements_board,
                                                int measurement_index_board) {
-  // Bounds checking: ensure measurement range is within vector
-  if (measurement_index_board < 0 || num_measurements_board <= 0 ||
-      static_cast<size_t>(measurement_index_board + num_measurements_board) >
-          x.size()) {
-    throw std::runtime_error("Invalid measurement indices in "
-                             "_observed_pixel_uncertainty_from_inputs");
-  }
-
-  // Compute variance from residuals over the specified range
+  // Compute variance from residuals
   double sum = 0.0, sum_sq = 0.0;
   for (int i = measurement_index_board;
        i < measurement_index_board + num_measurements_board; i++) {
@@ -286,11 +278,10 @@ double _observed_pixel_uncertainty_from_inputs(std::vector<double> &x,
     sum_sq += val * val;
   }
 
-  // Compute statistics over the measurement range (not total vector)
-  double mean = sum / num_measurements_board;
-  double variance = (sum_sq / num_measurements_board) - (mean * mean);
+  double mean = sum / x.size();
+  double variance = (sum_sq / x.size()) - (mean * mean);
 
-  return std::sqrt(std::max(0.0, variance));
+  return std::sqrt(variance);
 }
 
 CalibrationUncertaintyContext create_calibration_uncertainty_context(
@@ -492,7 +483,7 @@ std::vector<mrcal_point3_t> compute_uncertainty(
   // Completely initialize lensmodel to zero to avoid uninitialized memory on
   // ARM64 This is critical: uninitialized fields can cause crashes in
   // BLAS/LAPACK operations
-  mrcal_lensmodel_t lensmodel = {};
+  mrcal_lensmodel_t lensmodel{};
   lensmodel.type = MRCAL_LENSMODEL_OPENCV8;
 
   // Create calibration uncertainty context once
