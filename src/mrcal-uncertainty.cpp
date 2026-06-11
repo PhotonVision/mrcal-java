@@ -268,18 +268,27 @@ _dq_db_projection_uncertainty(mrcal_point3_t pcam, mrcal_lensmodel_t lensmodel,
 double _observed_pixel_uncertainty_from_inputs(std::vector<double> &x,
                                                int num_measurements_board,
                                                int measurement_index_board) {
-  // Compute variance from residuals
+  // Bounds checking: ensure measurement range is within vector
+  if (measurement_index_board < 0 || num_measurements_board <= 0 ||
+      static_cast<size_t>(measurement_index_board + num_measurements_board) > x.size()) {
+    throw std::runtime_error(
+        "Invalid measurement indices in _observed_pixel_uncertainty_from_inputs");
+  }
+
+  // Compute variance from residuals over the specified range
   double sum = 0.0, sum_sq = 0.0;
-  for (size_t i = measurement_index_board;
+  for (int i = measurement_index_board;
        i < measurement_index_board + num_measurements_board; i++) {
     double val = x[i];
     sum += val;
     sum_sq += val * val;
   }
-  double mean = sum / x.size();
-  double variance = (sum_sq / x.size()) - (mean * mean);
 
-  return std::sqrt(variance);
+  // Compute statistics over the measurement range (not total vector)
+  double mean = sum / num_measurements_board;
+  double variance = (sum_sq / num_measurements_board) - (mean * mean);
+
+  return std::sqrt(std::max(0.0, variance));
 }
 
 CalibrationUncertaintyContext create_calibration_uncertainty_context(
@@ -311,6 +320,9 @@ CalibrationUncertaintyContext create_calibration_uncertainty_context(
   std::vector<int32_t> Jt_p(Nmeasurements + 1);
   std::vector<int32_t> Jt_i(N_j_nonzero);
   std::vector<double_t> Jt_x(N_j_nonzero);
+
+  // Initialize Jt_p[0] to 0 for sparse matrix validity
+  Jt_p[0] = 0;
 
   cholmod_sparse Jt = {.nrow = static_cast<size_t>(Nstate),
                        .ncol = static_cast<size_t>(Nmeasurements),
@@ -475,7 +487,9 @@ std::vector<mrcal_point3_t> compute_uncertainty(
     cv::Size imagerSize, cv::Size calobjectSize, double calobjectSpacing,
     cv::Size sampleResolution) {
 
-  mrcal_lensmodel_t lensmodel;
+  // Completely initialize lensmodel to zero to avoid uninitialized memory on ARM64
+  // This is critical: uninitialized fields can cause crashes in BLAS/LAPACK operations
+  mrcal_lensmodel_t lensmodel = {};
   lensmodel.type = MRCAL_LENSMODEL_OPENCV8;
 
   // Create calibration uncertainty context once
