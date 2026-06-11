@@ -17,10 +17,10 @@
 
 #include "mrcal-uncertainty.hpp"
 #include <Eigen/SparseLU>
+#include <algorithm>
 #include <chrono>
 #include <memory>
 #include <utility>
-#include <algorithm>
 #include <vector>
 
 using namespace cv;
@@ -271,9 +271,10 @@ double _observed_pixel_uncertainty_from_inputs(std::vector<double> &x,
                                                int measurement_index_board) {
   // Bounds checking: ensure measurement range is within vector
   if (measurement_index_board < 0 || num_measurements_board <= 0 ||
-      static_cast<size_t>(measurement_index_board + num_measurements_board) > x.size()) {
-    throw std::runtime_error(
-        "Invalid measurement indices in _observed_pixel_uncertainty_from_inputs");
+      static_cast<size_t>(measurement_index_board + num_measurements_board) >
+          x.size()) {
+    throw std::runtime_error("Invalid measurement indices in "
+                             "_observed_pixel_uncertainty_from_inputs");
   }
 
   // Compute variance from residuals over the specified range
@@ -488,8 +489,9 @@ std::vector<mrcal_point3_t> compute_uncertainty(
     cv::Size imagerSize, cv::Size calobjectSize, double calobjectSpacing,
     cv::Size sampleResolution) {
 
-  // Completely initialize lensmodel to zero to avoid uninitialized memory on ARM64
-  // This is critical: uninitialized fields can cause crashes in BLAS/LAPACK operations
+  // Completely initialize lensmodel to zero to avoid uninitialized memory on
+  // ARM64 This is critical: uninitialized fields can cause crashes in
+  // BLAS/LAPACK operations
   mrcal_lensmodel_t lensmodel = {};
   lensmodel.type = MRCAL_LENSMODEL_OPENCV8;
 
