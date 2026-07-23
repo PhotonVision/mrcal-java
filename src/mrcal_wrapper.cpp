@@ -278,7 +278,7 @@ mrcal_pose_t getSeedPose(const mrcal_point3_t *c_observations_board_pool,
   double cy = (imagerSize.height / 2.0) - 0.5;
 
   vector<Point3f> objectPoints;
-  vector<Point2d> imagePoints;
+  vector<mrcal_point2_t> mrcal_imagepts;
 
   // Fill in object/image points
   for (int i = 0; i < boardSize.height; i++) {
@@ -286,21 +286,18 @@ mrcal_pose_t getSeedPose(const mrcal_point3_t *c_observations_board_pool,
       auto &corner = c_observations_board_pool[i * boardSize.width + j];
       // weight<0 means ignored -- filter these out
       if (corner.z >= 0) {
-        imagePoints.emplace_back(corner.x, corner.y);
-        objectPoints.push_back(Point3f(j * squareSize, i * squareSize, 0));
+        mrcal_imagepts.emplace_back(
+            mrcal_point2_t{.x = corner.x, .y = corner.y});
+        objectPoints.emplace_back(j * squareSize, i * squareSize, 0);
       }
     }
   }
 
+  vector<Point2d> imagePoints(mrcal_imagepts.size());
   {
     // convert from stereographic to pinhole to match python
-    std::vector<mrcal_point2_t> mrcal_imagepts(imagePoints.size());
-    std::transform(
-        imagePoints.begin(), imagePoints.end(), mrcal_imagepts.begin(),
-        [](const auto &pt) { return mrcal_point2_t{.x = pt.x, .y = pt.y}; });
-
     mrcal_lensmodel_t model{.type = MRCAL_LENSMODEL_STEREOGRAPHIC};
-    std::vector<mrcal_point3_t> out(imagePoints.size());
+    std::vector<mrcal_point3_t> out(mrcal_imagepts.size());
     const double intrinsics[] = {fx, fy, cx, cy};
     bool ret = mrcal_unproject(out.data(), mrcal_imagepts.data(),
                                mrcal_imagepts.size(), &model, intrinsics);
@@ -321,11 +318,8 @@ mrcal_pose_t getSeedPose(const mrcal_point3_t *c_observations_board_pool,
   Mat distCoeffs = Mat(4, 1, CV_64FC1, Scalar(0));
 
   Mat_<double> rvec, tvec;
-  vector<Point3f> objectPoints3;
-  for (auto a : objectPoints)
-    objectPoints3.push_back(Point3f(a.x, a.y, 0));
 
-  solvePnP(objectPoints3, imagePoints, cameraMatrix, distCoeffs, rvec, tvec,
+  solvePnP(objectPoints, imagePoints, cameraMatrix, distCoeffs, rvec, tvec,
            false, SOLVEPNP_ITERATIVE);
 
   return mrcal_pose_t{.r = {.x = rvec(0), .y = rvec(1), .z = rvec(2)},
