@@ -167,9 +167,6 @@ static std::unique_ptr<mrcal_result> mrcal_calibrate(
 
   // in
   int *c_imagersizes = imagersize;
-  auto point_min_range = -1.0, point_max_range = -1.0;
-  mrcal_problem_constants_t problem_constants = {
-      .point_min_range = point_min_range, .point_max_range = point_max_range};
   int verbose = 0;
 
   auto stats = mrcal_optimize(
@@ -179,9 +176,8 @@ static std::unique_ptr<mrcal_result> mrcal_calibrate(
       c_observations_board, c_observations_point, Nobservations_board,
       Nobservations_point, NULL, -1, // We don't use these, so pass nulls
       c_observations_board_pool, c_observations_point_pool, &mrcal_lensmodel,
-      c_imagersizes, problem_selections, &problem_constants,
-      calibration_object_spacing, calibration_object_width_n,
-      calibration_object_height_n, verbose, false);
+      c_imagersizes, problem_selections, NULL, calibration_object_spacing,
+      calibration_object_width_n, calibration_object_height_n, verbose, false);
 
   std::vector<double> residuals = {c_x_final, c_x_final + Nmeasurements};
   return std::make_unique<mrcal_result>(
