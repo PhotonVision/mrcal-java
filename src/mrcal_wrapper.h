@@ -18,7 +18,8 @@
 #include <mrcal.h>
 
 #include <memory>
-#include <opencv2/opencv.hpp>
+#include <opencv2/core/mat.hpp>
+#include <opencv2/core/types.hpp>
 #include <span>
 #include <utility>
 #include <vector>
@@ -40,9 +41,18 @@ struct mrcal_result {
         rms_error{rms_error_}, residuals{std::move(residuals_)},
         calobject_warp{calobject_warp_}, Noutliers_board{Noutliers_board_} {}
   mrcal_result(mrcal_result &&) = delete;
-  ~mrcal_result();
+  ~mrcal_result() = default;
 };
 
+/**
+ * Gets the seed pose for a board.
+ *
+ * @param c_observations_board_pool The corners in image space.
+ * @param boardSize The size of the corner grid.
+ * @param imagerSize The size of the image in pixels.
+ * @param squareSize The size of the squares in a physical distance unit.
+ * @param focal_len_guess A focal length guess in pixels.
+ */
 mrcal_pose_t getSeedPose(const mrcal_point3_t *c_observations_board_pool,
                          cv::Size boardSize, cv::Size imagerSize,
                          double squareSize, double focal_len_guess);

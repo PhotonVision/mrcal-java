@@ -19,10 +19,9 @@
 #include <stdlib.h>
 
 #include <algorithm>
-#include <chrono>
 #include <cstdio>
-#include <iostream>
 #include <memory>
+#include <opencv2/calib3d.hpp>
 #include <random>
 #include <span>
 #include <stdexcept>
@@ -306,7 +305,7 @@ mrcal_pose_t getSeedPose(const mrcal_point3_t *c_observations_board_pool,
     bool ret = mrcal_unproject(out.data(), mrcal_imagepts.data(),
                                mrcal_imagepts.size(), &model, intrinsics);
     if (!ret) {
-      std::cerr << "couldn't unproject!" << std::endl;
+      BARF("couldn't unproject!");
     }
     model = {.type = MRCAL_LENSMODEL_PINHOLE};
     mrcal_project(mrcal_imagepts.data(), NULL, NULL, out.data(), out.size(),
@@ -318,7 +317,7 @@ mrcal_pose_t getSeedPose(const mrcal_point3_t *c_observations_board_pool,
   }
 
   // Initial guess at intrinsics
-  Mat cameraMatrix = (Mat_<double>(3, 3) << fx, 0, cx, 0, fy, cy, 0, 0, 1);
+  Mat cameraMatrix{{3, 3}, {fx, 0.0, cx, 0.0, fy, cy, 0.0, 0.0, 1.0}};
   Mat distCoeffs = Mat(4, 1, CV_64FC1, Scalar(0));
 
   Mat_<double> rvec, tvec;
@@ -332,8 +331,6 @@ mrcal_pose_t getSeedPose(const mrcal_point3_t *c_observations_board_pool,
   return mrcal_pose_t{.r = {.x = rvec(0), .y = rvec(1), .z = rvec(2)},
                       .t = {.x = tvec(0), .y = tvec(1), .z = tvec(2)}};
 }
-
-mrcal_result::~mrcal_result() { return; }
 
 // Code taken from mrcal, license:
 // Copyright (c) 2017-2023 California Institute of Technology ("Caltech"). U.S.
@@ -363,7 +360,7 @@ std::unique_ptr<mrcal_result> mrcal_main(
     std::vector<double> intrinsics = {focal_length_guess, focal_length_guess,
                                       cx, cy};
 
-    std::cout << "Initial solve (geometry only)" << std::endl;
+    std::printf("Initial solve (geometry only)\n");
 
     mrcal_problem_selections_t options = construct_problem_selections(
         {.do_optimize_intrinsics_core = false,
@@ -385,9 +382,8 @@ std::unique_ptr<mrcal_result> mrcal_main(
   }
 
   {
-    std::cout
-        << "Initial solve (geometry and LENSMODEL_STEREOGRAPHIC core only)"
-        << std::endl;
+    std::printf(
+        "Initial solve (geometry and LENSMODEL_STEREOGRAPHIC core only)\n");
     mrcal_problem_selections_t options = construct_problem_selections(
         {.do_optimize_intrinsics_core = true,
          .do_optimize_intrinsics_distortions = true,
@@ -439,9 +435,8 @@ std::unique_ptr<mrcal_result> mrcal_main(
     std::copy(seedDistortions.begin(), seedDistortions.end(),
               intrinsics.begin() + result->intrinsics.size());
 
-    std::cout
-        << "Optimizing everything except board warp from seeded intrinsics"
-        << std::endl;
+    std::printf(
+        "Optimizing everything except board warp from seeded intrinsics\n");
     mrcal_problem_selections_t options = construct_problem_selections(
         {.do_optimize_intrinsics_core = true,
          .do_optimize_intrinsics_distortions = true,
@@ -458,7 +453,7 @@ std::unique_ptr<mrcal_result> mrcal_main(
   }
 
   {
-    std::cout << "Final, full solve" << std::endl;
+    std::printf("Final, full solve\n");
     mrcal_problem_selections_t options = construct_problem_selections(
         {.do_optimize_intrinsics_core = true,
          .do_optimize_intrinsics_distortions = true,
@@ -511,20 +506,20 @@ bool undistort_mrcal(cv::Mat *dst, const cv::Mat *cameraMat,
     mrcal_lensmodel.LENSMODEL_SPLINED_STEREOGRAPHIC__config.Ny = Ny;
     break;
   default:
-    std::cerr << "Unknown lensmodel\n";
+    BARF("Unknown lensmodel\n");
     return false;
   }
 
-  if (!(dst->cols == 2)) {
-    std::cerr << "Bad input array size\n";
+  if (dst->cols != 2) {
+    BARF("Bad input array size\n");
     return false;
   }
-  if (!(dst->type() == CV_64FC2)) {
-    std::cerr << "Bad input type -- need CV_64F\n";
+  if (dst->type() != CV_64FC2) {
+    BARF("Bad input type -- need CV_64F\n");
     return false;
   }
-  if (!(dst->isContinuous())) {
-    std::cerr << "Bad input array -- need continuous\n";
+  if (!dst->isContinuous()) {
+    BARF("Bad input array -- need continuous\n");
     return false;
   }
 
