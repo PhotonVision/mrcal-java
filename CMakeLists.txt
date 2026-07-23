@@ -89,7 +89,7 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -w")
 if(NOT APPLE)
     set(BLA_VENDOR OpenBLAS)
 
-    if(ARM64_BUILD)
+    if(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
         # ----------------------------------------------------------------
         # Variables for subdirectory builds must be set in the parent cache
         # BEFORE FetchContent_MakeAvailable.
@@ -117,10 +117,6 @@ if(NOT APPLE)
         set(DYNAMIC_ARCH OFF CACHE BOOL "" FORCE)
         set(DYNAMIC_OLDER OFF CACHE BOOL "" FORCE)
 
-        # Lock the compiler to ARMv8-A baseline. This prevents the compiler
-        # from emitting SVE intrinsics even if OpenBLAS assembly kernels
-        # happen to include SVE .S files guarded by preprocessor.
-        set(CMAKE_C_FLAGS_OPENBLAS "-march=armv8-a" CACHE STRING "" FORCE)
         set(COMMON_OPT "-march=armv8-a" CACHE STRING "" FORCE)
 
         # Explicitly set ARCH so OpenBLAS does not re-detect it.
