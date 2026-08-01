@@ -65,7 +65,7 @@ jobs:
       # Build your program with the given configuration
       shell: bash
       run: |
-        cmake --build "${{ github.workspace }}/cmake_build" --target mrcal_jni
+        cmake --build "${{ github.workspace }}/cmake_build"
         "${{ github.workspace }}/cmake_build/bin/mrcal_jni_test"
 
     - name: Stage arm64 artifacts
