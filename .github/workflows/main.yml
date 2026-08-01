@@ -64,9 +64,15 @@ jobs:
     - name: Build shared mrcal_jni
       # Build your program with the given configuration
       shell: bash
-      run: cmake --build "${{ github.workspace }}/cmake_build"
+      run: cmake --build "${{ github.workspace }}/cmake_build" --target mrcal_jni
+
+    - name: Build mrcal_jni_test
+      if: runner.os != 'Windows'
+      shell: bash
+      run: cmake --build "${{ github.workspace }}/cmake_build" --target mrcal_jni_test
 
     - name: Run mrcal_jni_test
+      if: runner.os != 'Windows'
       shell: bash
       # On arm64, run under QEMU to catch illegal instructions
       run: |
