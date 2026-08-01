@@ -97,4 +97,3 @@ jobs:
       with:
         name: libmrcal-jar-${{ matrix.arch-name }}
         path: ${{ github.workspace }}/build/libs/*.jar
-
