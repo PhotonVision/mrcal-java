@@ -63,7 +63,10 @@ jobs:
 
     - name: Build shared mrcal_jni
       # Build your program with the given configuration
-      run: cmake --build ${{github.workspace}}/cmake_build --target mrcal_jni
+      shell: bash
+      run: |
+        cmake --build "${{ github.workspace }}/cmake_build" --target mrcal_jni
+        "${{ github.workspace }}/cmake_build/bin/mrcal_jni_test"
 
     - name: Gradle build
       # Build your program with the given configuration

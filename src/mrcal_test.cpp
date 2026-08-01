@@ -221,7 +221,7 @@ int main() {
   double calobjectSpacing(0.0254);
   cv::Size sampleRes{60, 40};
 
-  for (int i = 0; i < 5; i++) {
+  for (int i = 0; i < 1; i++) {
     auto start = std::chrono::high_resolution_clock::now();
     auto ret = compute_uncertainty(observations_board_cast, intrinsics,
                                    rt_ref_cast, warp, imagerSize, calobjectSize,
