@@ -64,23 +64,24 @@ jobs:
     - name: Build shared mrcal_jni
       # Build your program with the given configuration
       shell: bash
-      run: |
-        cmake --build "${{ github.workspace }}/cmake_build"
-        "${{ github.workspace }}/cmake_build/bin/mrcal_jni_test"
+      run: cmake --build "${{ github.workspace }}/cmake_build"
 
-    - name: Stage arm64 artifacts
-      if: matrix.arch-name == 'linuxarm64'
+    - name: Run mrcal_jni_test
       shell: bash
+      # On arm64, run under QEMU to catch illegal instructions
       run: |
-        mkdir -p stage
-        cp "${{ github.workspace }}/cmake_build/bin/mrcal_jni_test" stage/
-        find "${{ github.workspace }}/cmake_build" -type f \( -name '*.so' -o -name '*.so.*' \) -exec cp -a {} stage/ \;
-
-    - uses: actions/upload-artifact@v7
-      if: matrix.arch-name == 'linuxarm64'
-      with:
-        name: mrcal-jni-arm64-bin
-        path: stage/
+        if [[ "${{ matrix.arch-name }}" == "linuxarm64" ]]; then
+          sudo apt-get update
+          sudo apt-get install -y qemu-user gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+          chmod +x "${{ github.workspace }}/cmake_build/bin/mrcal_jni_test"
+          qemu-aarch64 \
+            -cpu cortex-a55 \
+            -L /usr/aarch64-linux-gnu \
+            -E LD_LIBRARY_PATH="${{ github.workspace }}/cmake_build/lib" \
+            "${{ github.workspace }}/cmake_build/bin/mrcal_jni_test"
+        else
+          "${{ github.workspace }}/cmake_build/bin/mrcal_jni_test"
+        fi
 
     - name: Gradle build
       # Build your program with the given configuration
@@ -97,27 +98,3 @@ jobs:
         name: libmrcal-jar-${{ matrix.arch-name }}
         path: ${{ github.workspace }}/build/libs/*.jar
 
-  qemu-aarch64:
-    needs: build-host
-    runs-on: ubuntu-latest
-    name: "mrcal-jni - Run - qemu-aarch64"
-
-    steps:
-    - uses: actions/download-artifact@v4
-      with:
-        name: mrcal-jni-arm64-bin
-        path: ${{ github.workspace }}/artifacts
-
-    - name: Install QEMU and ARM64 runtime
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y qemu-user gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-
-    - name: Run test under qemu-aarch64
-      run: |
-        chmod +x "${{ github.workspace }}/artifacts/mrcal_jni_test"
-        qemu-aarch64 \
-          -cpu cortex-a55 \
-          -L /usr/aarch64-linux-gnu \
-          -E LD_LIBRARY_PATH="${{ github.workspace }}/artifacts" \
-          "${{ github.workspace }}/artifacts/mrcal_jni_test"
