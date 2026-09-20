@@ -69,6 +69,23 @@ constexpr std::string jni_make_method_sig(std::string_view retval,
 }
 
 /**
+ * Converts decimation levels to point weights using `weight=0.5^level`.
+ * Negative weights correspond to ignored points.
+ *
+ * @param observations Input as [x, y, level], output as [x, y, weight]
+ */
+static void levels_to_weights(std::span<mrcal_point3_t> observations) {
+  for (auto &o : observations) {
+    double &level = o.z;
+    if (level < 0) {
+      o.z = -1;
+    } else {
+      o.z = std::pow(0.5, level);
+    }
+  }
+}
+
+/**
  * Finds a class and keeps it as a global reference.
  *
  * Use with caution, as the destructor does NOT call DeleteGlobalRef due to
@@ -206,15 +223,7 @@ Java_org_photonvision_mrcal_MrCalJNI_mrcal_1calibrate_1camera
       total_frames_rt_toref.push_back(seed_pose);
     }
 
-    // Convert detection level to weights
-    for (auto &o : observations) {
-      double &level = o.z;
-      if (level < 0) {
-        o.z = -1;
-      } else {
-        o.z = std::pow(0.5, level);
-      }
-    }
+    levels_to_weights(observations);
 
     auto statsptr = mrcal_main(observations, total_frames_rt_toref, boardSize,
                                static_cast<double>(boardSpacing), imagerSize,
@@ -354,6 +363,8 @@ Java_org_photonvision_mrcal_MrCalJNI_compute_1uncertainty
   cv::Size imagerSize(imageWidth, imageHeight);
   cv::Size calobjectSize(boardWidth, boardHeight);
   cv::Size sampleRes(sampleGridWidth, sampleGridHeight);
+
+  levels_to_weights(observations.asSpan<mrcal_point3_t>());
 
   std::vector<mrcal_point3_t> result;
   try {
